@@ -1,5 +1,5 @@
-const CACHE="masterledger-homescreen-v1-1";
-const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
+const CACHE="masterledger-homescreen-v1-2";
+const APP_SHELL=["./manifest.webmanifest","./icon.svg"];
 
 self.addEventListener("install",event=>{
   event.waitUntil(
@@ -10,30 +10,50 @@ self.addEventListener("install",event=>{
 
 self.addEventListener("activate",event=>{
   event.waitUntil(
-    caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
+    caches.keys().then(keys=>
+      Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))
+    )
   );
   self.clients.claim();
 });
 
 self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET") return;
-  const url=new URL(event.request.url);
 
-  // App files: cache-first for fast home-screen launch.
-  if(url.origin===location.origin){
+  const url=new URL(event.request.url);
+  const sameOrigin=url.origin===location.origin;
+  const isNavigation=event.request.mode==="navigate";
+  const isIndex=sameOrigin && (url.pathname.endsWith("/") || url.pathname.endsWith("/index.html"));
+
+  // HTML / app launch: network-first.
+  // GitHub Pagesの最新版を優先し、失敗時だけキャッシュへフォールバック。
+  if(isNavigation || isIndex){
     event.respondWith(
-      caches.match(event.request).then(cached=>{
-        return cached || fetch(event.request).then(response=>{
+      fetch(event.request, {cache:"no-store"})
+        .then(response=>{
           const copy=response.clone();
-          caches.open(CACHE).then(cache=>cache.put(event.request,copy));
+          caches.open(CACHE).then(cache=>cache.put("./index.html",copy));
           return response;
-        });
-      })
+        })
+        .catch(()=>caches.match("./index.html"))
     );
     return;
   }
 
-  // Existing Excel/image libraries may be CDN-hosted.
-  // They are never sent ledger data; they are loaded as code only.
+  // 同一オリジンの静的ファイル: cache-first
+  if(sameOrigin){
+    event.respondWith(
+      caches.match(event.request).then(cached=>
+        cached || fetch(event.request).then(response=>{
+          const copy=response.clone();
+          caches.open(CACHE).then(cache=>cache.put(event.request,copy));
+          return response;
+        })
+      )
+    );
+    return;
+  }
+
+  // CDNライブラリは従来どおり取得。仕訳データは送信しない。
   event.respondWith(fetch(event.request));
 });
