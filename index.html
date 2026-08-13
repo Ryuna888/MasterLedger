@@ -992,14 +992,14 @@ function saveDisplayedOrder(){
     const after=accounts.slice(insertIndex).filter(a=>a.category!==selectedAccountCategory);
     accounts=[...before,...ordered,...after];
   }
-  persist();refreshFilters();
+  persist();refreshFilters();renderReports();
 }
 
 function saveSubOrder(){
   const a=accountById(subEditingAccountId);if(!a)return;
   const ids=[...$("subModalList").querySelectorAll(".sub-swipe")].map(x=>x.dataset.subid);
   a.subs=ids.map(id=>a.subs.find(s=>s.id===id)).filter(Boolean);
-  persist();refreshSub("debit");refreshSub("credit");refreshSub("editDebit");refreshSub("editCredit");
+  persist();refreshSub("debit");refreshSub("credit");refreshSub("editDebit");refreshSub("editCredit");renderReports();
 }
 function openAccountRename(id){
   const a=accountById(id);if(!a)return;

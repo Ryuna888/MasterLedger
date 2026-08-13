@@ -1,4 +1,4 @@
-const CACHE="masterledger-homescreen-v1-7";
+const CACHE="masterledger-homescreen-v1-8";
 const APP_SHELL=["./manifest.webmanifest","./icon.png","./apple-touch-icon.png"];
 
 self.addEventListener("install",event=>{

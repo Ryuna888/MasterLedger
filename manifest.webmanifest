@@ -2,14 +2,14 @@
   "name": "複式簿記帳簿「MasterLedger」",
   "short_name": "MasterLedger",
   "description": "端末内保存と暗号化バックアップに対応した個人用複式簿記帳簿",
-  "start_url": "./index.html?v=1.7",
+  "start_url": "./index.html?v=1.8",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f0e7",
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "./icon.png?v=1.7",
+      "src": "./icon.png?v=1.8",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
