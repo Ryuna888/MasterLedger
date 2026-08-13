@@ -1,0 +1,1416 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MasterLedger">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="referrer" content="no-referrer">
+
+<title>複式簿記帳簿「MasterLedger」</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--line:#dedee3;--blue:#0a84ff;--text:#111;--muted:#74747a;--danger:#ff3b30;--soft:#f7f7fa}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;color:var(--text)}
+button,input,select,textarea{font:inherit}
+.app{max-width:760px;margin:auto;min-height:100vh;background:#fff;padding-bottom:86px}
+header{position:sticky;top:0;z-index:20;height:58px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);background:rgba(255,255,255,.96);font-size:20px;font-weight:700}
+.screen{display:none}.screen.active{display:block}
+.section{padding:8px 16px;background:#e9e9ee;font-weight:700}
+.field{padding:12px 16px;border-bottom:1px solid #eee}
+.compact-card{margin:10px 12px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.form-row{display:grid;grid-template-columns:86px 1fr;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid #eee}
+.form-row:last-child{border-bottom:0}
+.form-row label{font-weight:700;font-size:14px}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid #c8c8cf;border-radius:9px;background:#fff;font-size:16px}
+textarea{min-height:64px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.primary{width:calc(100% - 24px);margin:12px;padding:12px;border:0;border-radius:11px;background:var(--blue);color:#fff;font-size:17px;font-weight:700}
+.secondary{padding:8px 11px;border:1px solid #c6c6ca;border-radius:9px;background:#fff}
+.small{padding:6px 9px;font-size:13px}
+.danger{color:var(--danger)}
+nav{position:fixed;left:0;right:0;bottom:0;max-width:760px;margin:auto;height:78px;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #ccc;background:#fff;z-index:40;padding-bottom:env(safe-area-inset-bottom)}
+nav button{border:0;background:#fff;color:#777;font-size:11px}nav button.active{color:var(--blue);font-weight:700}nav .icon{display:block;font-size:21px;line-height:25px}
+.filters{padding:10px 12px;background:var(--soft);border-bottom:1px solid var(--line)}
+.filter-label{font-size:12px;color:var(--muted);margin:7px 2px 4px}
+.entry{position:relative;padding:13px 15px;border-bottom:1px solid var(--line)}
+.entry .date{color:var(--blue);font-weight:700}.entry .amount{position:absolute;right:15px;top:13px;font-size:20px;font-weight:700}.entry .line{margin-top:5px}
+.entry-actions{display:flex;gap:8px;margin-top:9px}
+.muted{color:var(--muted);font-size:13px}
+.empty{padding:32px 16px;text-align:center;color:#888}
+.report-controls{padding:10px 12px;background:var(--soft);border-bottom:1px solid var(--line)}
+.report-period{margin-top:8px;text-align:center;color:#555;font-size:13px}
+.report-card{margin:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.report-card h3{margin:0 0 8px;font-size:17px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #eee}.row.taprow{cursor:pointer}.row.taprow:active{background:#f2f6fb}.row .rowchev{color:#aaa;margin-left:6px}
+.row:last-child{border-bottom:0}
+.total-row{font-weight:700;border-top:1px solid #bbb;margin-top:3px;padding-top:10px}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.summary div{padding:8px 4px;border-radius:9px;background:#f3f6fb;text-align:center;font-size:11px}.summary b{display:block;margin-top:4px;font-size:16px}
+.capture-area{background:#fff;padding:1px 0 12px}
+.capture-title{text-align:center;font-weight:800;font-size:21px;margin:16px 0 4px}.capture-period{text-align:center;color:#555;font-size:13px;margin-bottom:8px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 16px;border-bottom:1px solid var(--line);background:#fff}.settings-row .name{font-weight:600}.settings-row .meta{font-size:12px;color:var(--muted);margin-top:3px}
+.category-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:12px}.category-button{padding:15px 10px;border:1px solid #d1d1d6;border-radius:12px;background:#fff;text-align:left}.category-button b{display:block}.category-button span{font-size:12px;color:var(--muted)}
+.account-head{position:sticky;top:58px;z-index:15;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line);background:#fff}.plus{width:36px;height:36px;border:0;border-radius:18px;background:#eef6ff;color:var(--blue);font-size:25px;line-height:32px}
+.account-list{overflow:hidden}
+.swipe-wrap{position:relative;overflow:hidden;border-bottom:1px solid #eee;background:var(--danger)}
+.swipe-delete{position:absolute;right:0;top:0;bottom:0;width:82px;border:0;background:var(--danger);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1}.swipe-delete:focus-visible{outline:3px solid rgba(255,255,255,.85);outline-offset:-5px}
+.account-row{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:13px 12px;background:#fff;transform:translateX(0);transition:transform .18s ease;touch-action:pan-y}
+.swipe-wrap.swiped .account-row{transform:translateX(-82px)}
+.handle{width:34px;height:38px;display:flex;align-items:center;justify-content:center;text-align:center;color:#888;font-size:23px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:8px}.handle:active{background:#eee}.dragging{opacity:.78;box-shadow:0 8px 22px rgba(0,0,0,.18);transform:scale(1.015);z-index:20;background:#f7fbff!important}.dragging .handle{background:#e6f1ff;color:#0a84ff}.drag-placeholder{height:58px;border:2px dashed #9bbce5;background:#eef6ff}.reorder-hint{font-size:12px;color:#666;padding:7px 12px;background:#fff7df;border-bottom:1px solid #eadca8}.import-box{margin:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}.import-box input[type=file]{padding:8px;background:#fafafa}.import-result{margin-top:9px;font-size:13px;color:#555;white-space:pre-wrap}.rename-btn{border:0;background:none;color:var(--blue);font-size:13px;padding:6px}.icon-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:0;border-radius:10px;background:transparent;font-size:19px;line-height:1}.icon-btn:active{background:#efeff4}.icon-btn:focus-visible{outline:3px solid rgba(10,132,255,.35);outline-offset:2px}
+.account-main{flex:1}.account-main b{display:block}.account-main small{color:var(--muted)}
+.chev{color:#aaa;font-size:20px}
+.sub-editor{padding:10px 14px 14px;background:#fafafa;border-bottom:1px solid #ddd}
+.sub-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee}
+.toolbar{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);background:#fafafa}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.38);display:none;align-items:flex-end;justify-content:center}
+.modal.show{display:flex}
+.modal-sheet{width:min(760px,100%);max-height:90vh;overflow:auto;background:#f7f7f9;border-radius:18px 18px 0 0;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:13px 15px;background:#fff;border-bottom:1px solid var(--line);font-weight:700}
+.modal-head button{border:0;background:none;color:var(--blue);font-size:16px}
+.toast{position:fixed;left:50%;bottom:100px;z-index:200;transform:translateX(-50%);padding:10px 14px;border-radius:10px;background:rgba(0,0,0,.78);color:#fff;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}.toast.show{opacity:1}
+.notice{margin:10px 12px;padding:10px 12px;background:#eef6ff;border-radius:10px;color:#345;font-size:13px}
+.hidden{display:none!important}
+
+/* v2: SwiftUI版の外観テーマをHTMLへ再統合 */
+body.theme-paper{--bg:#f4f0e7;--card:#fffdf8;--soft:#f8f5ee}
+body.theme-mist{--bg:#eef3f7;--card:#ffffff;--soft:#f4f7fa}
+body.theme-sage{--bg:#edf3e9;--card:#fbfdf9;--soft:#f4f7f2}
+body.theme-graphite{--bg:#222429;--card:#303238;--soft:#292b30;--text:#f5f5f7;--muted:#b6b6bc;--line:#44464d}
+body.theme-graphite .app,
+body.theme-graphite header,
+body.theme-graphite nav,
+body.theme-graphite nav button,
+body.theme-graphite .settings-row,
+body.theme-graphite .compact-card,
+body.theme-graphite .report-card,
+body.theme-graphite .account-head,
+body.theme-graphite .category-button,
+body.theme-graphite input,
+body.theme-graphite select,
+body.theme-graphite textarea,
+body.theme-graphite .secondary{background:var(--card);color:var(--text)}
+body.theme-graphite .section{background:#383a40;color:#fff}
+.help-note{margin:10px 12px;padding:12px 14px;border-radius:12px;background:var(--soft);color:var(--muted);font-size:13px;line-height:1.6}
+
+
+.privacy-card{margin:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.privacy-card h3{margin:0 0 8px;font-size:16px}
+.privacy-card p{margin:6px 0;color:var(--muted);font-size:13px;line-height:1.55}
+.privacy-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.privacy-actions button{padding:11px 8px;border-radius:10px;border:1px solid #c6c6ca;background:var(--card);color:var(--text)}
+.privacy-actions button.primary-mini{background:var(--blue);border-color:var(--blue);color:#fff}
+.privacy-status{margin-top:8px;font-size:12px;color:var(--muted)}
+.password-sheet{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.32);display:none;align-items:center;justify-content:center;padding:20px}
+.password-sheet.show{display:flex}
+.password-panel{width:min(420px,100%);background:var(--card);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.password-panel h3{margin:0 0 8px}.password-panel p{font-size:13px;color:var(--muted);line-height:1.5}
+.password-panel .buttons{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
+</style>
+</head>
+<body>
+<div class="app">
+<header id="title">仕訳登録</header>
+
+<section id="register" class="screen active">
+  <div class="compact-card">
+    <div class="form-row"><label>日付</label><input id="date" type="date"></div>
+    <div class="form-row"><label>金額</label><input id="amount" type="number" min="1" placeholder="金額"></div>
+  </div>
+
+  <div class="section">借方</div>
+  <div class="compact-card">
+    <div class="form-row"><label>種類</label><select id="debitCategory"></select></div>
+    <div class="form-row"><label>勘定科目</label><select id="debitAccount"></select></div>
+    <div class="form-row" id="debitSubRow"><label>補助科目</label><select id="debitSub"></select></div>
+  </div>
+
+  <div class="section">貸方</div>
+  <div class="compact-card">
+    <div class="form-row"><label>種類</label><select id="creditCategory"></select></div>
+    <div class="form-row"><label>勘定科目</label><select id="creditAccount"></select></div>
+    <div class="form-row" id="creditSubRow"><label>補助科目</label><select id="creditSub"></select></div>
+  </div>
+
+  <div class="compact-card">
+    <div class="form-row"><label>メモ</label><textarea id="memo" placeholder="任意"></textarea></div>
+  </div>
+  <button class="primary" onclick="saveEntry()">仕訳を登録</button>
+</section>
+
+<section id="list" class="screen">
+  <div class="section">仕訳一覧</div>
+  <div class="filters">
+    <div class="filter-label">期間</div>
+    <div class="grid2"><input id="from" type="date"><input id="to" type="date"></div>
+    <div class="filter-label">借方科目で抽出</div>
+    <select id="filterDebit"></select>
+    <div class="filter-label">貸方科目で抽出</div>
+    <select id="filterCredit"></select>
+  </div>
+  <div id="entries"></div>
+</section>
+
+<section id="pl" class="screen">
+  <div class="section">損益計算書</div>
+  <div class="report-controls">
+    <div class="filter-label">集計期間</div>
+    <div class="grid2"><input id="plFrom" type="date"><input id="plTo" type="date"></div>
+    <button class="secondary" style="width:100%;margin-top:9px" onclick="saveReportImage('plCapture','損益計算書')">フルスクリーン画像を保存</button>
+    <div class="report-period" id="plPeriodLabel"></div>
+  </div>
+  <div id="plCapture" class="capture-area">
+    <div class="capture-title">損益計算書</div>
+    <div class="capture-period" id="plCapturePeriod"></div>
+    <div class="report-card">
+      <div class="summary">
+        <div>売上<b id="salesTotal">¥0</b></div>
+        <div>販管費<b id="expenseTotal">¥0</b></div>
+        <div>経常利益<b id="operatingProfit">¥0</b></div>
+      </div>
+    </div>
+    <div class="report-card"><h3>売上</h3><div id="salesDetail"></div><div class="row total-row"><span>売上合計</span><b id="salesSum">¥0</b></div></div>
+    <div class="report-card"><h3>販管費</h3><div id="expenseDetail"></div><div class="row total-row"><span>販管費合計</span><b id="expenseSum">¥0</b></div></div>
+    <div class="report-card"><h3>特別利益</h3><div id="specialGainDetail"></div><div class="row total-row"><span>特別利益合計</span><b id="specialGainSum">¥0</b></div></div>
+    <div class="report-card"><h3>特別損失</h3><div id="specialLossDetail"></div><div class="row total-row"><span>特別損失合計</span><b id="specialLossSum">¥0</b></div></div>
+    <div class="report-card"><div class="row total-row"><span>当期利益</span><b id="netProfit">¥0</b></div></div>
+  </div>
+</section>
+
+<section id="bs" class="screen">
+  <div class="section">バランスシート</div>
+  <div class="report-controls">
+    <div class="filter-label">基準日（この日まで）</div>
+    <input id="bsTo" type="date">
+    <button class="secondary" style="width:100%;margin-top:9px" onclick="saveReportImage('bsCapture','バランスシート')">フルスクリーン画像を保存</button>
+    <div class="report-period" id="bsPeriodLabel"></div>
+  </div>
+  <div id="bsCapture" class="capture-area">
+    <div class="capture-title">バランスシート</div>
+    <div class="capture-period" id="bsCapturePeriod"></div>
+    <div class="report-card"><h3>資産の部</h3><div id="assetDetail"></div><div class="row total-row"><span>資産合計</span><b id="assetSum">¥0</b></div></div>
+    <div class="report-card"><h3>負債の部</h3><div id="liabilityDetail"></div><div class="row total-row"><span>負債合計</span><b id="liabilitySum">¥0</b></div></div>
+    <div class="report-card"><h3>純資産の部</h3><div id="equityDetail"></div><div class="row total-row"><span>純資産合計</span><b id="equitySum">¥0</b></div></div>
+    <div class="report-card">
+      <div class="row"><span>負債・純資産合計</span><b id="rightSideSum">¥0</b></div>
+      <div class="row total-row"><span>貸借差額</span><b id="balanceDiff">¥0</b></div>
+    </div>
+  </div>
+</section>
+
+
+<section id="accountReport" class="screen">
+  <div class="toolbar">
+    <button class="secondary" onclick="backFromAccountReport()">‹ 戻る</button>
+  </div>
+  <div class="report-controls">
+    <button class="secondary" style="width:100%" onclick="saveReportImage('accountCapture','補助勘定科目一覧')">このページを画像保存</button>
+  </div>
+  <div id="accountCapture" class="capture-area">
+    <div class="capture-title" id="accountReportTitle">補助勘定科目</div>
+    <div class="capture-period" id="accountReportPeriod"></div>
+    <div class="report-card">
+      <div class="row total-row"><span>勘定科目合計</span><b id="accountReportTotal">¥0</b></div>
+    </div>
+    <div class="report-card">
+      <h3>補助勘定科目別</h3>
+      <div id="accountSubDetail"></div>
+    </div>
+  </div>
+</section>
+
+
+<section id="export" class="screen">
+  <div class="toolbar"><button class="secondary" onclick="show('settings')">‹ 設定</button></div>
+  <div class="section">仕訳データを書き出す</div>
+
+  <div class="report-card">
+    <h3>ファイル名</h3>
+    <input id="exportBaseName" placeholder="例：2026年8月_仕訳帳">
+    <div class="muted" style="margin-top:7px">拡張子は自動で付きます。保存時にiPhoneの「ファイルに保存」から保存場所を選べます。</div>
+  </div>
+
+  <div class="report-card">
+    <h3>Excelファイル</h3>
+    <div class="muted">編集して、そのままこのアプリへ再取込できる形式です。</div>
+    <button class="primary" style="width:100%;margin:12px 0 0" onclick="exportExcel()">Excel（.xlsx）を書き出す</button>
+  </div>
+
+  <div class="report-card">
+    <h3>CSVファイル</h3>
+    <div class="muted">表計算ソフトなどで扱いやすいUTF-8形式です。</div>
+    <button class="secondary" style="width:100%;margin-top:12px" onclick="exportCSV()">CSVを書き出す</button>
+  </div>
+
+  <div class="notice">
+    Excelの列構成は「日付 / 金額 / 借方・勘定科目 / 借方・補助科目 / 貸方・勘定科目 / 貸方・補助科目 / メモ」。
+    科目名や補助科目名をExcel側で編集して再取込すると、存在しない科目は自動追加されます。
+  </div>
+</section>
+
+<section id="settings" class="screen">
+  <div class="section">設定</div>
+  <div class="privacy-card">
+    <h3>ホーム画面から使う</h3>
+    <p>Safariでこのページを開き、共有ボタン →「ホーム画面に追加」→「Webアプリとして開く」を選ぶと、MasterLedgerのアイコンから起動できます。</p>
+    <div class="privacy-status">仕訳データはこの端末内に保存されます。</div>
+  </div>
+  <div class="privacy-card">
+    <h3>プライバシーとバックアップ</h3>
+    <p>仕訳データはこのiPhone / iPad内に保存します。仕訳内容を外部へ送信する処理はありません。</p>
+    <p>iCloudへ保管するときは、パスワードで暗号化したバックアップファイルを書き出してください。</p>
+    <div class="privacy-actions">
+      <button class="primary-mini" onclick="openBackupPassword()">🔒 暗号化バックアップ</button>
+      <button onclick="document.getElementById('encryptedRestore').click()">↩︎ 暗号化データを復元</button>
+    </div>
+    <input id="encryptedRestore" type="file" accept=".mlbackup,application/json" hidden>
+    <div id="privacyStatus" class="privacy-status">端末内保存：有効</div>
+  </div>
+  <div class="settings-row">
+    <div><div class="name">背景</div><div class="meta">見やすい外観を選べます</div></div>
+    <select id="themeSelect" style="width:auto;min-width:135px">
+      <option value="paper">アイボリー</option>
+      <option value="mist">ミスト</option>
+      <option value="sage">セージ</option>
+      <option value="graphite">グラファイト</option>
+    </select>
+  </div>
+  <div class="help-note">勘定科目の管理、仕訳データの読み込み・書き出し、背景の変更ができます。ExcelやCSVから仕訳を読み込むと、必要な勘定科目・補助勘定科目も自動で追加されます。</div>
+  <div class="settings-row" onclick="show('accountCategories')">
+    <div><div class="name">勘定科目・補助勘定科目</div><div class="meta">種類を選んで編集</div></div><span>›</span>
+  </div>
+  <div class="settings-row" onclick="document.getElementById('excelImport').click()">
+    <div><div class="name">Excel仕訳帳を読み込む</div><div class="meta">仕訳・勘定科目・補助勘定科目を自動追加</div></div><span>›</span>
+  </div>
+  <input id="excelImport" type="file" accept=".xlsx,.xls,.csv,text/csv" class="hidden">
+  <div id="importResult" class="notice hidden"></div>
+  <div class="settings-row" onclick="show('export')"><div><div class="name">仕訳データを書き出す</div><div class="meta">Excel / CSV</div></div><span>›</span></div>
+  <div class="settings-row" onclick="resetAccounts()"><div class="name">勘定科目を初期状態へ戻す</div><span>›</span></div>
+  <div class="settings-row" onclick="clearEntries()"><div class="name danger">仕訳を全削除</div><span>›</span></div>
+</section>
+
+<section id="accountCategories" class="screen">
+  <div class="toolbar"><button class="secondary" onclick="show('settings')">‹ 設定</button></div>
+  <div class="section">種類を選択</div>
+  <div id="categoryGrid" class="category-grid"></div>
+</section>
+
+<section id="accounts" class="screen">
+  <div class="account-head">
+    <button class="secondary small" onclick="show('accountCategories')">‹ 種類</button>
+    <b id="accountScreenTitle"></b>
+    <button class="plus" onclick="openAddAccount()">＋</button>
+  </div>
+  <div class="reorder-hint">☰ を長押しして上下へ動かすと並べ替えできます。左スワイプで ➖ 削除を表示。削除表示中に科目名・✏️・› をタップした場合は、削除ボタンを収納するだけで編集や画面移動はしません。</div>
+  <div id="accountList" class="account-list"></div>
+</section>
+
+<nav>
+  <button data-screen="register" class="active" onclick="show('register')"><span class="icon">✎</span>仕訳登録</button>
+  <button data-screen="list" onclick="show('list')"><span class="icon">▣</span>仕訳一覧</button>
+  <button data-screen="pl" onclick="show('pl')"><span class="icon">▥</span>損益計算書</button>
+  <button data-screen="bs" onclick="show('bs')"><span class="icon">⚖</span>BS</button>
+  <button data-screen="settings" onclick="show('settings')"><span class="icon">⚙</span>設定</button>
+</nav>
+</div>
+
+<div id="editModal" class="modal">
+  <div class="modal-sheet">
+    <div class="modal-head"><button onclick="closeModal('editModal')">キャンセル</button><span>仕訳を修正</span><button onclick="saveEditedEntry()">保存</button></div>
+    <div class="compact-card">
+      <div class="form-row"><label>日付</label><input id="editDate" type="date"></div>
+      <div class="form-row"><label>金額</label><input id="editAmount" type="number" min="1"></div>
+    </div>
+    <div class="section">借方</div>
+    <div class="compact-card">
+      <div class="form-row"><label>種類</label><select id="editDebitCategory"></select></div>
+      <div class="form-row"><label>勘定科目</label><select id="editDebitAccount"></select></div>
+      <div class="form-row" id="editDebitSubRow"><label>補助科目</label><select id="editDebitSub"></select></div>
+    </div>
+    <div class="section">貸方</div>
+    <div class="compact-card">
+      <div class="form-row"><label>種類</label><select id="editCreditCategory"></select></div>
+      <div class="form-row"><label>勘定科目</label><select id="editCreditAccount"></select></div>
+      <div class="form-row" id="editCreditSubRow"><label>補助科目</label><select id="editCreditSub"></select></div>
+    </div>
+    <div class="compact-card"><div class="form-row"><label>メモ</label><textarea id="editMemo"></textarea></div></div>
+  </div>
+</div>
+
+<div id="addAccountModal" class="modal">
+  <div class="modal-sheet">
+    <div class="modal-head"><button onclick="closeModal('addAccountModal')">キャンセル</button><span>勘定科目を追加</span><button onclick="saveNewAccount()">追加</button></div>
+    <div class="compact-card">
+      <div class="form-row"><label>種類</label><input id="addAccountCategoryLabel" disabled></div>
+      <div class="form-row"><label>科目名</label><input id="addAccountName" placeholder="例：美容費"></div>
+    </div>
+  </div>
+</div>
+
+<div id="subModal" class="modal">
+  <div class="modal-sheet">
+    <div class="modal-head"><button onclick="closeModal('subModal')">閉じる</button><span id="subModalTitle">補助勘定科目</span><button onclick="addSubFromModal()">＋追加</button></div>
+    <div id="subModalList"></div>
+  </div>
+</div>
+
+<div id="renameAccountModal" class="modal">
+  <div class="modal-sheet">
+    <div class="modal-head"><button onclick="closeModal('renameAccountModal')">キャンセル</button><span>勘定科目を編集</span><button onclick="saveAccountRename()">保存</button></div>
+    <div class="compact-card">
+      <div class="form-row"><label>種類</label><select id="renameAccountCategory"></select></div>
+      <div class="form-row"><label>科目名</label><input id="renameAccountName"></div>
+    </div>
+    <div class="notice">仕訳は科目IDで紐付いているため、名前を変更しても過去の仕訳へ自動反映されます。</div>
+  </div>
+</div>
+
+<div id="renameSubModal" class="modal">
+  <div class="modal-sheet">
+    <div class="modal-head"><button onclick="closeModal('renameSubModal')">キャンセル</button><span>補助勘定科目を編集</span><button onclick="saveSubRename()">保存</button></div>
+    <div class="compact-card"><div class="form-row"><label>補助科目</label><input id="renameSubName"></div></div>
+    <div class="notice">補助勘定科目もIDで紐付いているため、名前変更後も過去仕訳へ引き継がれます。</div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clone = x => JSON.parse(JSON.stringify(x));
+
+const categories = [
+  {id:"asset",name:"資産",report:"bs"},
+  {id:"liability",name:"負債",report:"bs"},
+  {id:"equity",name:"純資産",report:"bs"},
+  {id:"sales",name:"売上",report:"pl"},
+  {id:"expense",name:"販管費",report:"pl"},
+  {id:"specialGain",name:"特別利益",report:"pl"},
+  {id:"specialLoss",name:"特別損失",report:"pl"}
+];
+
+const defaultAccounts = [
+["現金・預金","asset"],["電子マネー","asset"],["株式・国債等","asset"],["未収入金","asset"],["保険積立金","asset"],["家電・家具","asset"],["趣味用品","asset"],["服飾","asset"],["人脈投資","asset"],["土地・家","asset"],["教養・保健金","asset"],["教養投資","asset"],["子供投資","asset"],
+["クレジットカード未決済","liability"],["未払費用","liability"],["未払金","liability"],["自動車ローン","liability"],["住宅ローン","liability"],["短期借入金","liability"],["長期借入金","liability"],["奨学金","liability"],["資産除去債務","liability"],["その他負債","liability"],
+["資本金","equity"],["利益剰余金","equity"],
+["年金","sales"],["給付金","sales"],["資産売却益","sales"],["利息","sales"],["株式配当金","sales"],["お給料","sales"],["自営業収入","sales"],["副業収入","sales"],["アルバイト収入","sales"],["その他収入","sales"],
+["食費","expense"],["消耗品費","expense"],["地代家賃","expense"],["水道光熱費","expense"],["通信費","expense"],["趣味費","expense"],["交際費","expense"],["福利厚生費","expense"],["宗教・寄付","expense"],["減価償却費","expense"],["交通費","expense"],["保険料","expense"],["利子","expense"],["医療費","expense"],["教育費","expense"],["レジャー費","expense"],["税金","expense"],["その他費用","expense"],
+["債務免除益","specialGain"],["金融商品評価益","specialGain"],["金融商品売却益","specialGain"],["その他特別利益","specialGain"],["不動産売却益","specialGain"],["不動産評価益","specialGain"],
+["債務免除損","specialLoss"],["金融商品評価損","specialLoss"],["金融商品売却損","specialLoss"],["不動産売却損","specialLoss"],["不動産評価損","specialLoss"],["除却損","specialLoss"],["災害損失","specialLoss"],["解約損失","specialLoss"],["減損損失","specialLoss"],["その他特別損失","specialLoss"]
+].map((x,i)=>({id:"acc_"+(i+1),name:x[0],category:x[1],subs:[]}));
+
+let accounts = JSON.parse(localStorage.getItem("ml_v02_accounts")||"null") || clone(defaultAccounts);
+let entries = JSON.parse(localStorage.getItem("ml_v02_entries")||"[]");
+let selectedAccountCategory = "asset";
+let editingEntryId = null;
+let subEditingAccountId = null;
+let renamingAccountId = null;
+let renamingSubId = null;
+let accountReportAccountId = null;
+let accountReportSource = "pl";
+
+function persist(){
+  localStorage.setItem("ml_v02_accounts",JSON.stringify(accounts));
+  localStorage.setItem("ml_v02_entries",JSON.stringify(entries));
+}
+function catName(id){return categories.find(c=>c.id===id)?.name||id}
+function accountById(id){return accounts.find(a=>a.id===id)}
+function monthBounds(d=new Date()){
+  const y=d.getFullYear(),m=d.getMonth();
+  const first=new Date(y,m,1),last=new Date(y,m+1,0);
+  const f=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;
+  return [f(first),f(last)];
+}
+function jpDateRange(a,b){return `${a.replaceAll("-","/")} 〜 ${b.replaceAll("-","/")}`}
+function show(id){
+  document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
+  $(id).classList.add("active");
+  $("title").textContent={register:"仕訳登録",list:"仕訳一覧",pl:"損益計算書",bs:"バランスシート",settings:"設定",accountCategories:"勘定科目の種類",accounts:catName(selectedAccountCategory),accountReport:"補助勘定科目",export:"データ書き出し"}[id];
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===id));
+  renderAll();
+}
+function toast(msg){
+  $("toast").textContent=msg;$("toast").classList.add("show");
+  setTimeout(()=>$("toast").classList.remove("show"),1800);
+}
+function categoryOptions(includeBlank=false){
+  return (includeBlank?'<option value="">種類を選択</option>':'')+categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+}
+function accountOptionsFor(categoryId,includeBlank=false){
+  const rows=accounts.filter(a=>a.category===categoryId);
+  return (includeBlank?'<option value="">指定なし</option>':'<option value="">勘定科目を選択</option>')+rows.map(a=>`<option value="${a.id}">${a.name}</option>`).join("");
+}
+function fullAccountOptions(){
+  let s='<option value="">指定なし</option>';
+  for(const c of categories){
+    const rows=accounts.filter(a=>a.category===c.id);
+    if(!rows.length)continue;
+    s+=`<optgroup label="${c.name}">`+rows.map(a=>`<option value="${a.id}">${a.name}</option>`).join("")+'</optgroup>';
+  }
+  return s;
+}
+function initRegisterSelectors(){
+  ["debitCategory","creditCategory","editDebitCategory","editCreditCategory"].forEach(id=>{
+    const old=$(id).value;$(id).innerHTML=categoryOptions(true);if(old)$(id).value=old;
+  });
+}
+function refreshSide(prefix){
+  const cat=$(prefix+"Category").value;
+  const accountEl=$(prefix+"Account");
+  const old=accountEl.value;
+  accountEl.innerHTML=cat?accountOptionsFor(cat,false):'<option value="">先に種類を選択</option>';
+  if(old&&accounts.some(a=>a.id===old&&a.category===cat))accountEl.value=old;
+  refreshSub(prefix);
+}
+function refreshSub(prefix){
+  const aid=$(prefix+"Account").value;
+  const acc=accountById(aid),subs=acc?.subs||[];
+  const el=$(prefix+"Sub"),row=$(prefix+"SubRow");
+  el.innerHTML='<option value="">指定なし</option>'+subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  row.classList.toggle("hidden",subs.length===0);
+}
+function refreshFilters(){
+  const d=$("filterDebit").value,c=$("filterCredit").value;
+  $("filterDebit").innerHTML=fullAccountOptions();
+  $("filterCredit").innerHTML=fullAccountOptions();
+  if(d)$("filterDebit").value=d;if(c)$("filterCredit").value=c;
+}
+function saveEntry(){
+  const date=$("date").value,amount=Number($("amount").value),d=$("debitAccount").value,c=$("creditAccount").value;
+  if(!date||!amount||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
+  entries.unshift({id:Date.now(),date,amount,debitAccount:d,debitSub:$("debitSub").value||"",creditAccount:c,creditSub:$("creditSub").value||"",memo:$("memo").value.trim()});
+  persist();
+
+  // 仕訳登録フォームを完全に初期状態へ戻す
+  $("amount").value="";
+  $("memo").value="";
+  $("debitCategory").value="";
+  $("creditCategory").value="";
+  refreshSide("debit");
+  refreshSide("credit");
+  $("debitAccount").value="";
+  $("creditAccount").value="";
+  $("debitSub").value="";
+  $("creditSub").value="";
+  $("debitSubRow").classList.add("hidden");
+  $("creditSubRow").classList.add("hidden");
+
+  show("list");
+}
+function accountLabel(aid,sid){
+  const a=accountById(aid);if(!a)return"不明";
+  const s=a.subs.find(x=>x.id===sid);return s?`${a.name} / ${s.name}`:a.name;
+}
+
+function readDateRange(fromId,toId){
+  const from=$(fromId)?.value||"";
+  const to=$(toId)?.value||"";
+  if(!from || !to) return null;
+  return {from,to};
+}
+function readSingleDate(id){
+  const v=$(id)?.value||"";
+  return v||null;
+}
+function renderList(){
+  const range=readDateRange("from","to");
+  if(!range || range.from>range.to){
+    $("entries").innerHTML='<div class="empty">該当する仕訳はありません</div>';
+    return;
+  }
+  const rows=entries.filter(e=>
+    e.date>=range.from &&
+    e.date<=range.to &&
+    (!$("filterDebit").value||e.debitAccount===$("filterDebit").value) &&
+    (!$("filterCredit").value||e.creditAccount===$("filterCredit").value)
+  );
+  $("entries").innerHTML=rows.length?rows.map(e=>`
+    <div class="entry">
+      <div class="date">${e.date}</div><div class="amount">¥${e.amount.toLocaleString()}</div>
+      <div class="line">借：${accountLabel(e.debitAccount,e.debitSub)}</div>
+      <div class="line">貸：${accountLabel(e.creditAccount,e.creditSub)}</div>
+      ${e.memo?`<div class="muted">メモ：${e.memo}</div>`:""}
+      <div class="entry-actions"><button class="secondary small" onclick="openEditEntry(${e.id})">修正</button><button class="secondary small danger" onclick="deleteEntry(${e.id})">削除</button></div>
+    </div>`).join(""):'<div class="empty">該当する仕訳はありません</div>';
+}
+function deleteEntry(id){if(confirm("この仕訳を削除しますか？")){entries=entries.filter(e=>e.id!==id);persist();renderAll()}}
+function openEditEntry(id){
+  const e=entries.find(x=>x.id===id);if(!e)return;editingEntryId=id;
+  $("editDate").value=e.date;$("editAmount").value=e.amount;$("editMemo").value=e.memo||"";
+  const da=accountById(e.debitAccount),ca=accountById(e.creditAccount);
+  $("editDebitCategory").value=da?.category||"";refreshSide("editDebit");$("editDebitAccount").value=e.debitAccount;refreshSub("editDebit");$("editDebitSub").value=e.debitSub||"";
+  $("editCreditCategory").value=ca?.category||"";refreshSide("editCredit");$("editCreditAccount").value=e.creditAccount;refreshSub("editCredit");$("editCreditSub").value=e.creditSub||"";
+  $("editModal").classList.add("show");
+}
+function saveEditedEntry(){
+  const e=entries.find(x=>x.id===editingEntryId);if(!e)return;
+  const amt=Number($("editAmount").value),d=$("editDebitAccount").value,c=$("editCreditAccount").value;
+  if(!$("editDate").value||!amt||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
+  Object.assign(e,{date:$("editDate").value,amount:amt,debitAccount:d,debitSub:$("editDebitSub").value||"",creditAccount:c,creditSub:$("editCreditSub").value||"",memo:$("editMemo").value.trim()});
+  persist();closeModal("editModal");renderAll();toast("仕訳を修正しました");
+}
+function closeModal(id){$(id).classList.remove("show")}
+
+function signedChange(a,side,amount){
+  const debitNormal=["asset","expense","specialLoss"].includes(a.category);
+  return side==="debit"?(debitNormal?amount:-amount):(debitNormal?-amount:amount);
+}
+function periodEntries(from,to){return entries.filter(e=>(!from||e.date>=from)&&(!to||e.date<=to))}
+function balancesFor(rows){
+  const b={};accounts.forEach(a=>b[a.id]=0);
+  rows.forEach(e=>{const d=accountById(e.debitAccount),c=accountById(e.creditAccount);if(d)b[d.id]+=signedChange(d,"debit",e.amount);if(c)b[c.id]+=signedChange(c,"credit",e.amount)});
+  return b;
+}
+function sumCat(cat,b){return accounts.filter(a=>a.category===cat).reduce((s,a)=>s+(b[a.id]||0),0)}
+function drawNonZero(targetId,cat,b,source){
+  const rows=accounts.filter(a=>a.category===cat).map(a=>({a,v:b[a.id]||0})).filter(x=>x.v!==0);
+  $(targetId).innerHTML=rows.length?rows.map(x=>`
+    <div class="row taprow" onclick="showAccountReport('${x.a.id}','${source}')">
+      <span>${x.a.name}<span class="rowchev">›</span></span>
+      <b>¥${x.v.toLocaleString()}</b>
+    </div>`).join(""):'<div class="muted">該当なし</div>';
+}
+function renderReports(){
+  const plRange=readDateRange("plFrom","plTo");
+  const bt=readSingleDate("bsTo");
+
+  // PL: 日付未設定や逆転なら「データなし」として表示
+  let net=0;
+  if(plRange && plRange.from<=plRange.to){
+    const pf=plRange.from,pt=plRange.to;
+    $("plPeriodLabel").textContent=jpDateRange(pf,pt);
+    $("plCapturePeriod").textContent=jpDateRange(pf,pt);
+
+    const pb=balancesFor(periodEntries(pf,pt));
+    const sales=sumCat("sales",pb),expense=sumCat("expense",pb),
+          sg=sumCat("specialGain",pb),sl=sumCat("specialLoss",pb),
+          op=sales-expense;
+    net=op+sg-sl;
+
+    $("salesTotal").textContent="¥"+sales.toLocaleString();
+    $("expenseTotal").textContent="¥"+expense.toLocaleString();
+    $("operatingProfit").textContent="¥"+op.toLocaleString();
+    $("salesSum").textContent="¥"+sales.toLocaleString();
+    $("expenseSum").textContent="¥"+expense.toLocaleString();
+    $("specialGainSum").textContent="¥"+sg.toLocaleString();
+    $("specialLossSum").textContent="¥"+sl.toLocaleString();
+    $("netProfit").textContent="¥"+net.toLocaleString();
+    drawNonZero("salesDetail","sales",pb,"pl");
+    drawNonZero("expenseDetail","expense",pb,"pl");
+    drawNonZero("specialGainDetail","specialGain",pb,"pl");
+    drawNonZero("specialLossDetail","specialLoss",pb,"pl");
+  }else{
+    $("plPeriodLabel").textContent="";
+    $("plCapturePeriod").textContent="";
+    ["salesDetail","expenseDetail","specialGainDetail","specialLossDetail"].forEach(id=>$(id).innerHTML='<div class="muted">該当なし</div>');
+    ["salesTotal","expenseTotal","operatingProfit","salesSum","expenseSum","specialGainSum","specialLossSum","netProfit"].forEach(id=>$(id).textContent="¥0");
+  }
+
+  // BS: 基準日が空なら安全にゼロ表示。通常は最古から基準日まで累積。
+  if(bt){
+    const bsLabel=`〜 ${bt.replaceAll("-","/")} まで`;
+    $("bsPeriodLabel").textContent=bsLabel;
+    $("bsCapturePeriod").textContent=bsLabel;
+
+    const bb=balancesFor(periodEntries("",bt));
+    const asset=sumCat("asset",bb),liability=sumCat("liability",bb),equityBase=sumCat("equity",bb);
+    const bsSales=sumCat("sales",bb),bsExpense=sumCat("expense",bb),
+          bsSg=sumCat("specialGain",bb),bsSl=sumCat("specialLoss",bb),
+          bsNet=bsSales-bsExpense+bsSg-bsSl;
+    const equity=equityBase+bsNet,right=liability+equity;
+
+    drawNonZero("assetDetail","asset",bb,"bs");
+    drawNonZero("liabilityDetail","liability",bb,"bs");
+    drawNonZero("equityDetail","equity",bb,"bs");
+    if(bsNet!==0)$("equityDetail").innerHTML+=`<div class="row"><span>当期利益</span><b>¥${bsNet.toLocaleString()}</b></div>`;
+
+    $("assetSum").textContent="¥"+asset.toLocaleString();
+    $("liabilitySum").textContent="¥"+liability.toLocaleString();
+    $("equitySum").textContent="¥"+equity.toLocaleString();
+    $("rightSideSum").textContent="¥"+right.toLocaleString();
+    $("balanceDiff").textContent="¥"+(asset-right).toLocaleString();
+  }else{
+    $("bsPeriodLabel").textContent="";
+    $("bsCapturePeriod").textContent="";
+    ["assetDetail","liabilityDetail","equityDetail"].forEach(id=>$(id).innerHTML='<div class="muted">該当なし</div>');
+    ["assetSum","liabilitySum","equitySum","rightSideSum","balanceDiff"].forEach(id=>$(id).textContent="¥0");
+  }
+}
+
+function showAccountReport(accountId,source){
+  if(source==="pl"){
+    const r=readDateRange("plFrom","plTo");
+    if(!r || r.from>r.to) return;
+  }else{
+    if(!readSingleDate("bsTo")) return;
+  }
+  accountReportAccountId=accountId;
+  accountReportSource=source;
+  renderAccountReport();
+  show("accountReport");
+}
+function backFromAccountReport(){
+  show(accountReportSource==="bs"?"bs":"pl");
+}
+function renderAccountReport(){
+  const a=accountById(accountReportAccountId);if(!a)return;
+  const from=accountReportSource==="bs"?"":$("plFrom").value;
+  const to=accountReportSource==="bs"?$("bsTo").value:$("plTo").value;
+  const rows=periodEntries(from,to);
+  let total=0;
+  const subMap={};
+  for(const e of rows){
+    if(e.debitAccount===a.id){
+      const v=signedChange(a,"debit",e.amount);total+=v;
+      const key=e.debitSub||"__none";subMap[key]=(subMap[key]||0)+v;
+    }
+    if(e.creditAccount===a.id){
+      const v=signedChange(a,"credit",e.amount);total+=v;
+      const key=e.creditSub||"__none";subMap[key]=(subMap[key]||0)+v;
+    }
+  }
+  $("accountReportTitle").textContent=a.name+" / 補助勘定科目";
+  $("accountReportPeriod").textContent=accountReportSource==="bs" ? `〜 ${to.replaceAll("-","/")} まで` : jpDateRange(from,to);
+  $("accountReportTotal").textContent="¥"+total.toLocaleString();
+
+  const ordered=[];
+  for(const s of a.subs){
+    const v=subMap[s.id]||0;
+    if(v!==0)ordered.push({name:s.name,v});
+  }
+  const none=subMap["__none"]||0;
+  if(none!==0)ordered.push({name:"補助勘定科目なし",v:none});
+
+  $("accountSubDetail").innerHTML=ordered.length
+    ? ordered.map(x=>`<div class="row"><span>${x.name}</span><b>¥${x.v.toLocaleString()}</b></div>`).join("")
+    : '<div class="muted">この期間に補助勘定科目別の残高はありません</div>';
+}
+
+async function saveReportImage(targetId,title){
+  if(typeof html2canvas==="undefined"){alert("画像生成ライブラリを読み込めませんでした。インターネット接続を確認してください。");return}
+  toast("画像を作成中…");
+  const el=$(targetId);
+  try{
+    const canvas=await html2canvas(el,{backgroundColor:"#ffffff",scale:2,useCORS:true,windowWidth:el.scrollWidth,windowHeight:el.scrollHeight});
+    const blob=await new Promise(r=>canvas.toBlob(r,"image/png"));
+    const file=new File([blob],`${title}_${new Date().toISOString().slice(0,10)}.png`,{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title});
+      toast("共有メニューから「画像を保存」を選べます");
+    }else{
+      const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      toast("PNG画像を保存しました");
+    }
+  }catch(err){alert("画像作成に失敗しました: "+err.message)}
+}
+
+function renderCategoryGrid(){
+  $("categoryGrid").innerHTML=categories.map(c=>{
+    const n=accounts.filter(a=>a.category===c.id).length;
+    return `<button class="category-button" onclick="openCategory('${c.id}')"><b>${c.name}</b><span>${n}科目</span></button>`;
+  }).join("");
+}
+function openCategory(id){selectedAccountCategory=id;show("accounts")}
+
+function closeSwipeForElement(el){
+  const wrap=el.closest(".swipe-wrap");
+  if(!wrap) return false;
+  const wasOpen=wrap.classList.contains("swiped");
+  if(wasOpen) wrap.classList.remove("swiped");
+  return wasOpen;
+}
+function renderAccountList(){
+  $("accountScreenTitle").textContent=catName(selectedAccountCategory);
+  const rows=accounts.filter(a=>a.category===selectedAccountCategory);
+  $("accountList").innerHTML=rows.length?rows.map(a=>`
+    <div class="swipe-wrap" data-id="${a.id}">
+      <button class="swipe-delete" aria-label="勘定科目を削除" title="削除" onclick="removeAccount('${a.id}')">➖</button>
+      <div class="account-row" data-id="${a.id}">
+        <div class="handle" data-handle="${a.id}" aria-label="長押しで並べ替え">☰</div>
+        <div class="account-main" onclick="if(closeSwipeForElement(this)) return; openSubModal('${a.id}')">
+          <b>${a.name}</b>
+          <small>補助勘定科目 ${a.subs.length}件</small>
+        </div>
+        <button class="icon-btn" aria-label="勘定科目名を変更" title="名前を変更" onclick="event.stopPropagation();if(closeSwipeForElement(this)) return; openAccountRename('${a.id}')">✏️</button>
+        <div class="chev" onclick="if(closeSwipeForElement(this)) return; openSubModal('${a.id}')">›</div>
+      </div>
+    </div>`).join(""):'<div class="empty">勘定科目はありません</div>';
+  bindSwipeAndLongPressDrag("accountList",".swipe-wrap",".handle",saveDisplayedOrder);
+}
+function openAddAccount(){
+  $("addAccountCategoryLabel").value=catName(selectedAccountCategory);$("addAccountName").value="";$("addAccountModal").classList.add("show");setTimeout(()=>$("addAccountName").focus(),200);
+}
+function saveNewAccount(){
+  const name=$("addAccountName").value.trim();if(!name){alert("勘定科目名を入力してください");return}
+  accounts.push({id:"acc_"+Date.now()+"_"+Math.random().toString(16).slice(2),name,category:selectedAccountCategory,subs:[]});
+  persist();closeModal("addAccountModal");renderAll();toast("勘定科目を追加しました");
+}
+function removeAccount(id){
+  if(entries.some(e=>e.debitAccount===id||e.creditAccount===id)){alert("仕訳で使用中の勘定科目は削除できません");return}
+  if(confirm("この勘定科目を削除しますか？")){accounts=accounts.filter(a=>a.id!==id);persist();renderAll()}
+}
+function openSubModal(id){subEditingAccountId=id;renderSubModal();$("subModal").classList.add("show")}
+function renderSubModal(){
+  const a=accountById(subEditingAccountId);if(!a)return;
+  $("subModalTitle").textContent=a.name+" / 補助勘定科目";
+  $("subModalList").innerHTML=a.subs.length?a.subs.map(s=>`
+    <div class="swipe-wrap sub-swipe" data-subid="${s.id}">
+      <button class="swipe-delete" aria-label="補助勘定科目を削除" title="削除" onclick="removeSub('${s.id}')">➖</button>
+      <div class="account-row">
+        <div class="handle sub-handle" aria-label="長押しで並べ替え">☰</div>
+        <div class="account-main" onclick="closeSwipeForElement(this)"><b>${s.name}</b><small>補助勘定科目</small></div>
+        <button class="icon-btn" aria-label="補助勘定科目名を変更" title="名前を変更" onclick="if(closeSwipeForElement(this)) return; openSubRename('${s.id}')">✏️</button>
+      </div>
+    </div>`).join(""):'<div class="empty">補助勘定科目はありません</div>';
+  bindSwipeAndLongPressDrag("subModalList",".sub-swipe",".sub-handle",saveSubOrder);
+}
+function addSubFromModal(){
+  const name=prompt("追加する補助勘定科目名");if(!name||!name.trim())return;const a=accountById(subEditingAccountId);if(!a)return;
+  a.subs.push({id:"sub_"+Date.now()+"_"+Math.random().toString(16).slice(2),name:name.trim()});persist();renderSubModal();renderAll();
+}
+function removeSub(sid){
+  if(entries.some(e=>(e.debitAccount===subEditingAccountId&&e.debitSub===sid)||(e.creditAccount===subEditingAccountId&&e.creditSub===sid))){alert("仕訳で使用中の補助勘定科目は削除できません");return}
+  const a=accountById(subEditingAccountId);a.subs=a.subs.filter(s=>s.id!==sid);persist();renderSubModal();renderAll();
+}
+function bindSwipeAndLongPressDrag(containerId,itemSelector,handleSelector,onSave){
+  const container=$(containerId);if(!container)return;
+
+  // Horizontal swipe delete on the row
+  container.querySelectorAll(itemSelector).forEach(w=>{
+    let sx=0,sy=0,moved=false;
+    w.addEventListener("touchstart",e=>{
+      if(e.target.closest(handleSelector))return;
+      sx=e.touches[0].clientX;sy=e.touches[0].clientY;moved=false;
+    },{passive:true});
+    w.addEventListener("touchmove",e=>{
+      if(e.target.closest(handleSelector))return;
+      const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+      if(Math.abs(dx)>12||Math.abs(dy)>12)moved=true;
+    },{passive:true});
+    w.addEventListener("touchend",e=>{
+      if(e.target.closest(handleSelector)||!moved)return;
+      const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+
+      // 左スワイプで削除ボタン表示
+      if(Math.abs(dx)>32 && Math.abs(dx)>Math.abs(dy) && dx<0){
+        // 他の開いている削除ボタンは閉じる
+        container.querySelectorAll(itemSelector).forEach(x=>{
+          if(x!==w) x.classList.remove("swiped");
+        });
+        w.classList.add("swiped");
+      }
+    },{passive:true});
+  });
+
+  // Long-press drag reorder — optimized for iPhone/iPad touch.
+  container.querySelectorAll(handleSelector).forEach(handle=>{
+    let timer=null;
+    let active=false;
+    let dragItem=null;
+    let startX=0,startY=0,lastY=0;
+    let lastSwapAt=0;
+
+    const clear=()=>{if(timer){clearTimeout(timer);timer=null}};
+
+    const activate=()=>{
+      active=true;
+      dragItem=handle.closest(itemSelector);
+      if(!dragItem)return;
+      dragItem.classList.add("dragging");
+      try{navigator.vibrate?.(18)}catch(_){}
+      toast("並べ替えモード：そのまま上下へ");
+    };
+
+    handle.addEventListener("touchstart",e=>{
+      if(e.touches.length!==1)return;
+      const t=e.touches[0];
+      startX=t.clientX;startY=t.clientY;lastY=t.clientY;
+      clear();
+      timer=setTimeout(activate,420);
+    },{passive:true});
+
+    handle.addEventListener("touchmove",e=>{
+      const t=e.touches[0];
+      const dx=t.clientX-startX,dy=t.clientY-startY;
+
+      if(!active){
+        // Small finger jitter is tolerated; cancel only on clear movement before long press.
+        if(Math.abs(dx)>18||Math.abs(dy)>18)clear();
+        return;
+      }
+
+      e.preventDefault();
+      if(!dragItem)return;
+      lastY=t.clientY;
+
+      const currentRect=dragItem.getBoundingClientRect();
+      const prev=dragItem.previousElementSibling;
+      const next=dragItem.nextElementSibling;
+      let swapped=false;
+
+      if(prev && prev.matches(itemSelector)){
+        const r=prev.getBoundingClientRect();
+        if(lastY < r.top + r.height*0.58){
+          container.insertBefore(dragItem,prev);
+          swapped=true;
+        }
+      }
+      if(!swapped && next && next.matches(itemSelector)){
+        const r=next.getBoundingClientRect();
+        if(lastY > r.top + r.height*0.42){
+          container.insertBefore(next,dragItem);
+          swapped=true;
+        }
+      }
+
+      if(swapped && Date.now()-lastSwapAt>45){
+        lastSwapAt=Date.now();
+        try{navigator.vibrate?.(8)}catch(_){}
+      }
+
+      const edge=75;
+      if(lastY<edge)window.scrollBy(0,-10);
+      else if(lastY>window.innerHeight-edge)window.scrollBy(0,10);
+    },{passive:false});
+
+    const finish=e=>{
+      clear();
+      if(active&&dragItem){
+        dragItem.classList.remove("dragging");
+        onSave();
+        try{navigator.vibrate?.([10,25,10])}catch(_){}
+        toast("並べ替えを保存しました");
+      }
+      active=false;dragItem=null;
+    };
+
+    handle.addEventListener("touchend",finish,{passive:true});
+    handle.addEventListener("touchcancel",finish,{passive:true});
+    handle.addEventListener("contextmenu",e=>e.preventDefault());
+
+    // Mouse / trackpad fallback
+    let mouseActive=false,mouseItem=null,mouseTimer=null;
+    handle.addEventListener("mousedown",e=>{
+      mouseTimer=setTimeout(()=>{
+        mouseActive=true;mouseItem=handle.closest(itemSelector);mouseItem?.classList.add("dragging");
+      },420);
+      e.preventDefault();
+    });
+    document.addEventListener("mousemove",e=>{
+      if(!mouseActive||!mouseItem)return;
+      const prev=mouseItem.previousElementSibling,next=mouseItem.nextElementSibling;
+      if(prev&&prev.matches(itemSelector)){const r=prev.getBoundingClientRect();if(e.clientY<r.top+r.height/2)container.insertBefore(mouseItem,prev)}
+      if(next&&next.matches(itemSelector)){const r=next.getBoundingClientRect();if(e.clientY>r.top+r.height/2)container.insertBefore(next,mouseItem)}
+    });
+    document.addEventListener("mouseup",()=>{
+      if(mouseTimer){clearTimeout(mouseTimer);mouseTimer=null}
+      if(mouseActive&&mouseItem){mouseItem.classList.remove("dragging");onSave()}
+      mouseActive=false;mouseItem=null;
+    });
+  });
+}
+function saveDisplayedOrder(){
+  const ids=[...$("accountList").querySelectorAll(".swipe-wrap")].map(x=>x.dataset.id);
+  const others=accounts.filter(a=>a.category!==selectedAccountCategory);
+  const ordered=ids.map(id=>accountById(id)).filter(Boolean);
+  const insertIndex=accounts.findIndex(a=>a.category===selectedAccountCategory);
+  if(insertIndex<0){accounts=[...others,...ordered]}else{
+    const before=accounts.slice(0,insertIndex).filter(a=>a.category!==selectedAccountCategory);
+    const after=accounts.slice(insertIndex).filter(a=>a.category!==selectedAccountCategory);
+    accounts=[...before,...ordered,...after];
+  }
+  persist();refreshFilters();
+}
+
+function saveSubOrder(){
+  const a=accountById(subEditingAccountId);if(!a)return;
+  const ids=[...$("subModalList").querySelectorAll(".sub-swipe")].map(x=>x.dataset.subid);
+  a.subs=ids.map(id=>a.subs.find(s=>s.id===id)).filter(Boolean);
+  persist();refreshSub("debit");refreshSub("credit");refreshSub("editDebit");refreshSub("editCredit");
+}
+function openAccountRename(id){
+  const a=accountById(id);if(!a)return;
+  renamingAccountId=id;
+  $("renameAccountCategory").innerHTML=categoryOptions(false);
+  $("renameAccountCategory").value=a.category;
+  $("renameAccountName").value=a.name;
+  $("renameAccountModal").classList.add("show");
+  setTimeout(()=>$("renameAccountName").focus(),150);
+}
+function saveAccountRename(){
+  const a=accountById(renamingAccountId);if(!a)return;
+  const name=$("renameAccountName").value.trim();if(!name){alert("科目名を入力してください");return}
+  a.name=name;a.category=$("renameAccountCategory").value;
+  persist();closeModal("renameAccountModal");renderAll();toast("勘定科目名を変更しました");
+}
+function openSubRename(sid){
+  const a=accountById(subEditingAccountId),s=a?.subs.find(x=>x.id===sid);if(!s)return;
+  renamingSubId=sid;$("renameSubName").value=s.name;$("renameSubModal").classList.add("show");
+  setTimeout(()=>$("renameSubName").focus(),150);
+}
+function saveSubRename(){
+  const a=accountById(subEditingAccountId),s=a?.subs.find(x=>x.id===renamingSubId);if(!s)return;
+  const name=$("renameSubName").value.trim();if(!name){alert("補助科目名を入力してください");return}
+  s.name=name;persist();closeModal("renameSubModal");renderSubModal();renderAll();toast("補助勘定科目名を変更しました");
+}
+
+/* Excel / CSV import */
+function parseCSVLine(line){
+  const out=[];let cur="",q=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q;
+    }else if(ch===','&&!q){out.push(cur);cur=""}
+    else cur+=ch;
+  }
+  out.push(cur);return out;
+}
+function normalizeImportedRows(matrix){
+  if(!matrix||!matrix.length)return [];
+  // Uploaded workbook pattern: one cell per row containing a CSV line.
+  if(matrix.every(r=>r.length<=1)){
+    matrix=matrix.map(r=>parseCSVLine(String(r[0]??"")));
+  }
+  const header=matrix[0].map(x=>String(x??"").trim());
+  const aliases={
+    date:["日付"],amount:["金額"],
+    debit:["借方・勘定科目","借方勘定科目","借方"],
+    debitSub:["借方・補助科目","借方補助科目"],
+    credit:["貸方・勘定科目","貸方勘定科目","貸方"],
+    creditSub:["貸方・補助科目","貸方補助科目"],
+    memo:["メモ","摘要"]
+  };
+  const idx={};
+  for(const [k,names] of Object.entries(aliases)){
+    idx[k]=header.findIndex(h=>names.includes(h));
+  }
+  if(idx.date<0||idx.amount<0||idx.debit<0||idx.credit<0)throw new Error("必要な列（日付・金額・借方・貸方）を見つけられません");
+  return matrix.slice(1).filter(r=>r.some(v=>String(v??"").trim())).map(r=>({
+    date:String(r[idx.date]??"").trim(),
+    amount:String(r[idx.amount]??"").replaceAll(",","").trim(),
+    debit:String(r[idx.debit]??"").trim(),
+    debitSub:idx.debitSub>=0?String(r[idx.debitSub]??"").trim():"",
+    credit:String(r[idx.credit]??"").trim(),
+    creditSub:idx.creditSub>=0?String(r[idx.creditSub]??"").trim():"",
+    memo:idx.memo>=0?String(r[idx.memo]??"").trim():""
+  }));
+}
+function normalizeDateText(v){
+  let s=String(v||"").trim();
+  let m=s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+  if(m)return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if(m)return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  return s;
+}
+function defaultCategoryForName(name){
+  const d=defaultAccounts.find(a=>a.name===name);
+  if(d)return d.category;
+  const existing=accounts.find(a=>a.name===name);
+  if(existing)return existing.category;
+  return null;
+}
+function getOrCreateAccount(name,side){
+  if(!name)return null;
+  let a=accounts.find(x=>x.name===name);
+  if(a)return a;
+  let category=defaultCategoryForName(name);
+  // Fallback for genuinely new names: debit-only is provisionally expense, credit-only sales.
+  // User can immediately reclassify from the edit screen.
+  if(!category)category=side==="debit"?"expense":"sales";
+  a={id:"acc_"+Date.now()+"_"+Math.random().toString(16).slice(2),name,category,subs:[]};
+  accounts.push(a);return a;
+}
+function getOrCreateSub(account,name){
+  if(!account||!name)return "";
+  let s=account.subs.find(x=>x.name===name);
+  if(!s){s={id:"sub_"+Date.now()+"_"+Math.random().toString(16).slice(2),name};account.subs.push(s)}
+  return s.id;
+}
+async function importLedgerFile(file){
+  if(typeof XLSX==="undefined")throw new Error("Excel読込ライブラリを読み込めません。インターネット接続を確認してください");
+  const buf=await file.arrayBuffer();
+  const wb=XLSX.read(buf,{type:"array",cellDates:false});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const matrix=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
+  const rows=normalizeImportedRows(matrix);
+  let addedAccounts=0,addedSubs=0,addedEntries=0;
+  const beforeA=accounts.length,beforeS=accounts.reduce((n,a)=>n+a.subs.length,0);
+  for(const r of rows){
+    const amount=Number(r.amount);
+    if(!r.date||!amount||!r.debit||!r.credit)continue;
+    const da=getOrCreateAccount(r.debit,"debit"),ca=getOrCreateAccount(r.credit,"credit");
+    const ds=getOrCreateSub(da,r.debitSub),cs=getOrCreateSub(ca,r.creditSub);
+    entries.push({
+      id:Date.now()+Math.floor(Math.random()*1000000),
+      date:normalizeDateText(r.date),amount,
+      debitAccount:da.id,debitSub:ds,creditAccount:ca.id,creditSub:cs,memo:r.memo||""
+    });
+    addedEntries++;
+  }
+  entries.sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  addedAccounts=accounts.length-beforeA;
+  addedSubs=accounts.reduce((n,a)=>n+a.subs.length,0)-beforeS;
+  persist();renderAll();
+  return {addedEntries,addedAccounts,addedSubs};
+}
+
+
+function sanitizedExportBaseName(){
+  const raw=($("exportBaseName")?.value||"").trim();
+  const fallback=`MasterLedger_仕訳帳_${new Date().toISOString().slice(0,10)}`;
+  return (raw||fallback).replace(/[\\\\/:*?"<>|]/g,"_");
+}
+async function offerFile(file){
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file],title:file.name});
+      toast("共有メニューから「ファイルに保存」を選べます");
+      return;
+    }catch(err){
+      if(err?.name==="AbortError")return;
+    }
+  }
+  const url=URL.createObjectURL(file);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=file.name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1200);
+}
+function ledgerRowsForExport(){
+  return entries.map(e=>{
+    const d=accountById(e.debitAccount),c=accountById(e.creditAccount);
+    const ds=d?.subs.find(s=>s.id===e.debitSub)?.name||"";
+    const cs=c?.subs.find(s=>s.id===e.creditSub)?.name||"";
+    return {
+      "日付":e.date,
+      "金額":e.amount,
+      "借方・勘定科目":d?.name||"",
+      "借方・補助科目":ds,
+      "貸方・勘定科目":c?.name||"",
+      "貸方・補助科目":cs,
+      "メモ":e.memo||""
+    };
+  });
+}
+async function exportExcel(){
+  if(typeof XLSX==="undefined"){
+    alert("Excel出力ライブラリを読み込めませんでした。インターネット接続を確認してください。");
+    return;
+  }
+  const rows=ledgerRowsForExport();
+  const headers=["日付","金額","借方・勘定科目","借方・補助科目","貸方・勘定科目","貸方・補助科目","メモ"];
+  const ws=XLSX.utils.json_to_sheet(rows,{header:headers});
+  ws["!cols"]=[{wch:13},{wch:12},{wch:22},{wch:24},{wch:22},{wch:24},{wch:36}];
+  const lastRow=Math.max(1,rows.length+1);
+  ws["!autofilter"]={ref:`A1:G${lastRow}`};
+
+  const help=[
+    ["MasterLedger 再取込用 Excel"],
+    ["この「仕訳帳」シートを編集して、そのままアプリの「Excel仕訳帳を読み込む」から取り込めます。"],
+    ["列名は変更しないでください。"],
+    ["日付","YYYY-MM-DD 形式を推奨"],
+    ["金額","数値"],
+    ["勘定科目","存在しない名称は取込時に自動追加"],
+    ["補助勘定科目","存在しない名称は親の勘定科目へ自動追加"],
+    ["メモ","任意"]
+  ];
+  const helpWs=XLSX.utils.aoa_to_sheet(help);
+  helpWs["!cols"]=[{wch:28},{wch:70}];
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"仕訳帳");
+  XLSX.utils.book_append_sheet(wb,helpWs,"使い方");
+
+  const data=XLSX.write(wb,{bookType:"xlsx",type:"array",compression:true});
+  const filename=`${sanitizedExportBaseName()}.xlsx`;
+  const file=new File([data],filename,{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  await offerFile(file);
+}
+async function exportCSV(){
+  const headers=["日付","金額","借方・勘定科目","借方・補助科目","貸方・勘定科目","貸方・補助科目","メモ"];
+  const rows=ledgerRowsForExport();
+  const q=v=>`"${String(v??"").replaceAll('"','""')}"`;
+  const csv="\ufeff"+headers.map(q).join(",")+"\n"+
+    rows.map(r=>headers.map(h=>q(r[h])).join(",")).join("\n");
+  const filename=`${sanitizedExportBaseName()}.csv`;
+  const file=new File([csv],filename,{type:"text/csv;charset=utf-8"});
+  await offerFile(file);
+}
+function resetAccounts(){
+  if(entries.length){alert("仕訳が残っているため初期化できません。先に仕訳を全削除してください。");return}
+  if(confirm("勘定科目を初期状態に戻しますか？")){accounts=clone(defaultAccounts);persist();renderAll()}
+}
+function clearEntries(){if(confirm("仕訳をすべて削除しますか？")){entries=[];persist();renderAll()}}
+function renderAll(){
+  initRegisterSelectors();refreshSide("debit");refreshSide("credit");refreshSide("editDebit");refreshSide("editCredit");refreshFilters();renderList();renderReports();renderCategoryGrid();renderAccountList();
+  if(accountReportAccountId && $("accountReport").classList.contains("active")) renderAccountReport();
+}
+
+["debitCategory","creditCategory","editDebitCategory","editCreditCategory"].forEach(id=>$(id).addEventListener("change",()=>refreshSide(id.replace("Category",""))));
+["debitAccount","creditAccount","editDebitAccount","editCreditAccount"].forEach(id=>$(id).addEventListener("change",()=>refreshSub(id.replace("Account",""))));
+
+const lastValidDates={};
+function keepDateNonEmpty(id,callback){
+  const el=$(id);
+  lastValidDates[id]=el.value;
+  el.addEventListener("focus",()=>{ if(el.value) lastValidDates[id]=el.value; });
+  el.addEventListener("change",()=>{
+    if(!el.value){
+      el.value=lastValidDates[id]||new Date().toISOString().slice(0,10);
+    }else{
+      lastValidDates[id]=el.value;
+    }
+    callback();
+  });
+}
+
+["filterDebit","filterCredit"].forEach(id=>$(id).addEventListener("change",renderList));
+
+/* 日付リスナーは初期値設定後に keepDateNonEmpty で登録 */
+
+$("excelImport").addEventListener("change",async e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  try{
+    toast("Excelを読み込み中…");
+    const r=await importLedgerFile(file);
+    $("importResult").classList.remove("hidden");
+    $("importResult").textContent=`読み込み完了：仕訳 ${r.addedEntries}件 / 新規勘定科目 ${r.addedAccounts}件 / 新規補助勘定科目 ${r.addedSubs}件`;
+    toast("Excel仕訳帳を取り込みました");
+  }catch(err){
+    alert("読み込みに失敗しました：\n"+err.message);
+  }finally{e.target.value=""}
+});
+
+$("exportBaseName").value=`${new Date().getFullYear()}年${new Date().getMonth()+1}月_仕訳帳`;
+const [mf,mt]=monthBounds();
+$("date").value=new Date().toISOString().slice(0,10);
+["from","plFrom"].forEach(id=>$(id).value=mf);
+["to","plTo"].forEach(id=>$(id).value=mt);
+$("bsTo").value=mt;
+
+keepDateNonEmpty("from",renderList);
+keepDateNonEmpty("to",renderList);
+keepDateNonEmpty("plFrom",renderReports);
+keepDateNonEmpty("plTo",renderReports);
+keepDateNonEmpty("bsTo",renderReports);
+
+
+
+// ===== Private PWA storage =====
+// 通常利用は端末内。IndexedDBへもミラーして、localStorageだけに依存しない。
+// サーバーへ仕訳データを送る fetch / XHR は実装しない。
+const ML_DB_NAME="MasterLedgerPrivate";
+const ML_DB_STORE="ledger";
+let mlDB=null;
+
+function openMLDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(ML_DB_NAME,1);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(ML_DB_STORE)) db.createObjectStore(ML_DB_STORE);
+    };
+    req.onsuccess=()=>{mlDB=req.result;resolve(mlDB)};
+    req.onerror=()=>reject(req.error);
+  });
+}
+function idbPut(key,value){
+  if(!mlDB)return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const tx=mlDB.transaction(ML_DB_STORE,"readwrite");
+    tx.objectStore(ML_DB_STORE).put(value,key);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+function idbGet(key){
+  if(!mlDB)return Promise.resolve(undefined);
+  return new Promise((resolve,reject)=>{
+    const tx=mlDB.transaction(ML_DB_STORE,"readonly");
+    const r=tx.objectStore(ML_DB_STORE).get(key);
+    r.onsuccess=()=>resolve(r.result);
+    r.onerror=()=>reject(r.error);
+  });
+}
+
+const originalPersist=persist;
+persist=function(){
+  originalPersist();
+  idbPut("ledger",{accounts,entries,updatedAt:new Date().toISOString()}).catch(()=>{});
+};
+
+async function initializePrivateStorage(){
+  try{
+    await openMLDB();
+    const saved=await idbGet("ledger");
+    // IndexedDBにデータがあり、localStorageが空のときだけ復元。
+    const localHasEntries=localStorage.getItem("ml_v02_entries")!==null;
+    const localHasAccounts=localStorage.getItem("ml_v02_accounts")!==null;
+    if(saved && !localHasEntries && !localHasAccounts){
+      if(Array.isArray(saved.accounts)) accounts=saved.accounts;
+      if(Array.isArray(saved.entries)) entries=saved.entries;
+      originalPersist();
+      renderAll();
+    }else{
+      await idbPut("ledger",{accounts,entries,updatedAt:new Date().toISOString()});
+    }
+    const st=document.getElementById("privacyStatus");
+    if(st) st.textContent="端末内保存：有効";
+  }catch(e){
+    const st=document.getElementById("privacyStatus");
+    if(st) st.textContent="端末内保存：互換モード";
+  }
+}
+
+function bytesToB64(bytes){
+  let s=""; for(let i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+function b64ToBytes(s){
+  const bin=atob(s), out=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
+  return out;
+}
+async function deriveBackupKey(password,salt,usage){
+  const material=await crypto.subtle.importKey(
+    "raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2",salt,iterations:250000,hash:"SHA-256"},
+    material,
+    {name:"AES-GCM",length:256},
+    false,
+    usage
+  );
+}
+async function encryptLedger(password){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveBackupKey(password,salt,["encrypt"]);
+  const payload=new TextEncoder().encode(JSON.stringify({
+    format:"MasterLedgerPrivateBackup",
+    version:1,
+    createdAt:new Date().toISOString(),
+    accounts,entries
+  }));
+  const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key,payload));
+  return JSON.stringify({
+    format:"MasterLedgerEncrypted",
+    version:1,
+    kdf:"PBKDF2-SHA256",
+    iterations:250000,
+    cipher:"AES-256-GCM",
+    salt:bytesToB64(salt),
+    iv:bytesToB64(iv),
+    data:bytesToB64(encrypted)
+  });
+}
+async function decryptLedger(text,password){
+  const pack=JSON.parse(text);
+  if(pack.format!=="MasterLedgerEncrypted") throw new Error("MasterLedgerの暗号化バックアップではありません。");
+  const salt=b64ToBytes(pack.salt), iv=b64ToBytes(pack.iv), data=b64ToBytes(pack.data);
+  const key=await deriveBackupKey(password,salt,["decrypt"]);
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);
+  const obj=JSON.parse(new TextDecoder().decode(plain));
+  if(!Array.isArray(obj.accounts)||!Array.isArray(obj.entries)) throw new Error("バックアップ内容が不正です。");
+  return obj;
+}
+
+let pendingRestoreFile=null;
+function openBackupPassword(){
+  pendingRestoreFile=null;
+  document.getElementById("passwordTitle").textContent="暗号化バックアップ";
+  document.getElementById("passwordDescription").textContent="8文字以上のパスワードを設定してください。パスワードは端末にもサーバーにも保存しません。";
+  document.getElementById("backupPassword").value="";
+  document.getElementById("passwordAction").textContent="バックアップ";
+  document.getElementById("passwordAction").onclick=runEncryptedBackup;
+  document.getElementById("passwordSheet").classList.add("show");
+}
+function closePasswordSheet(){
+  document.getElementById("passwordSheet").classList.remove("show");
+  document.getElementById("backupPassword").value="";
+  pendingRestoreFile=null;
+}
+async function runEncryptedBackup(){
+  const password=document.getElementById("backupPassword").value;
+  if(password.length<8){alert("パスワードは8文字以上にしてください。");return}
+  try{
+    const encrypted=await encryptLedger(password);
+    const d=new Date(), pad=n=>String(n).padStart(2,"0");
+    const name=`MasterLedger_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.mlbackup`;
+    const file=new File([encrypted],name,{type:"application/json"});
+    closePasswordSheet();
+    await offerFile(file); // iOSでは「ファイルに保存」からiCloud Driveを選べる
+    toast("暗号化バックアップを作成しました");
+  }catch(e){alert("バックアップに失敗しました：\n"+e.message)}
+}
+
+document.getElementById("encryptedRestore").addEventListener("change",e=>{
+  const file=e.target.files?.[0]; if(!file)return;
+  pendingRestoreFile=file;
+  document.getElementById("passwordTitle").textContent="暗号化バックアップを復元";
+  document.getElementById("passwordDescription").textContent="バックアップ作成時に設定したパスワードを入力してください。";
+  document.getElementById("backupPassword").value="";
+  document.getElementById("passwordAction").textContent="復元";
+  document.getElementById("passwordAction").onclick=runEncryptedRestore;
+  document.getElementById("passwordSheet").classList.add("show");
+  e.target.value="";
+});
+async function runEncryptedRestore(){
+  const password=document.getElementById("backupPassword").value;
+  if(!pendingRestoreFile)return;
+  try{
+    const text=await pendingRestoreFile.text();
+    const obj=await decryptLedger(text,password);
+    if(!confirm(`仕訳 ${obj.entries.length}件を復元します。現在のデータは置き換えられます。よろしいですか？`))return;
+    accounts=obj.accounts; entries=obj.entries;
+    persist(); closePasswordSheet(); renderAll();
+    toast("暗号化バックアップを復元しました");
+  }catch(e){
+    alert("復元できませんでした。パスワードまたはファイルを確認してください。");
+  }
+}
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+initializePrivateStorage();
+
+// 外観テーマ
+const savedTheme=localStorage.getItem("masterledger_theme")||"paper";
+document.body.classList.add("theme-"+savedTheme);
+const themeSelect=document.getElementById("themeSelect");
+if(themeSelect){
+  themeSelect.value=savedTheme;
+  themeSelect.addEventListener("change",()=>{
+    [...document.body.classList].filter(c=>c.startsWith("theme-")).forEach(c=>document.body.classList.remove(c));
+    document.body.classList.add("theme-"+themeSelect.value);
+    localStorage.setItem("masterledger_theme",themeSelect.value);
+  });
+}
+
+renderAll();
+</script>
+<div id="passwordSheet" class="password-sheet">
+  <div class="password-panel">
+    <h3 id="passwordTitle">暗号化バックアップ</h3>
+    <p id="passwordDescription">バックアップを開くためのパスワードを設定してください。このパスワードは保存されません。</p>
+    <input id="backupPassword" type="password" autocomplete="new-password" placeholder="パスワード（8文字以上）">
+    <div class="buttons">
+      <button class="secondary" onclick="closePasswordSheet()">キャンセル</button>
+      <button id="passwordAction" class="secondary" onclick="runEncryptedBackup()">実行</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
