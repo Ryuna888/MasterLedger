@@ -319,8 +319,42 @@ body.theme-graphite .capture-area .muted{
   <input id="excelImport" type="file" accept=".xlsx,.xls,.csv,text/csv" class="hidden">
   <div id="importResult" class="notice hidden"></div>
   <div class="settings-row" onclick="show('export')"><div><div class="name">仕訳データを書き出す</div><div class="meta">Excel / CSV</div></div><span>›</span></div>
+  <div class="settings-row" onclick="show('about')">
+    <div><div class="name">MasterLedgerについて</div><div class="meta">オフライン・データ保存・バージョン情報</div></div><span>›</span>
+  </div>
   <div class="settings-row" onclick="resetAccounts()"><div class="name">勘定科目を初期状態へ戻す</div><span>›</span></div>
   <div class="settings-row" onclick="clearEntries()"><div class="name danger">仕訳を全削除</div><span>›</span></div>
+</section>
+
+
+<section id="about" class="screen">
+  <div class="toolbar"><button class="secondary" onclick="show('settings')">‹ 設定</button></div>
+  <div class="section">MasterLedgerについて</div>
+
+  <div class="privacy-card">
+    <h3>MasterLedger v2.1 Offline Edition</h3>
+    <p>複式簿記による個人向け帳簿アプリです。</p>
+  </div>
+
+  <div class="report-card">
+    <h3>オフライン対応</h3>
+    <p>初回の読み込みと必要なライブラリの取得が完了した後は、インターネット接続がない環境でも主要機能を利用できます。</p>
+  </div>
+
+  <div class="report-card">
+    <h3>データ保存</h3>
+    <p>仕訳・勘定科目・補助勘定科目などの帳簿データは、この端末のブラウザ保存領域に保存されます。通常のアプリ更新では帳簿データを削除しない設計です。</p>
+  </div>
+
+  <div class="report-card">
+    <h3>バックアップ</h3>
+    <p>SafariのWebサイトデータ削除、Webアプリのデータ削除、端末の初期化などではデータが失われる可能性があります。大切な帳簿は定期的にExcelまたはCSVへ書き出してください。</p>
+  </div>
+
+  <div class="report-card">
+    <h3>アップデート</h3>
+    <p>アプリ本体と帳簿データの保存領域を分けています。v2.1でも従来の保存キーをそのまま使用しているため、v2.0から更新しても既存の仕訳・科目を引き継ぐ設計です。</p>
+  </div>
 </section>
 
 <section id="accountCategories" class="screen">
