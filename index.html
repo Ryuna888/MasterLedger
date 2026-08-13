@@ -114,44 +114,42 @@ body.theme-graphite .section{background:#383a40;color:#fff}
 .password-panel .buttons{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 
 
-/* v1.5: グラファイト時の帳票コントラスト修正 */
+/* v1.6: グラファイト帳票を全面ダーク化して可読性を固定 */
 body.theme-graphite .capture-area{
-  background:#ffffff;
-  color:#111111;
+  background:#222429 !important;
+  color:#f5f5f7 !important;
 }
 body.theme-graphite .capture-title{
-  color:#111111;
+  color:#f5f5f7 !important;
 }
-body.theme-graphite .capture-period,
+body.theme-graphite .capture-period{
+  color:#d0d0d4 !important;
+}
 body.theme-graphite .report-period{
-  color:#d0d0d4;
-}
-body.theme-graphite .capture-area .capture-period{
-  color:#555555;
+  color:#d0d0d4 !important;
 }
 body.theme-graphite .capture-area .report-card{
-  background:#303238;
-  color:#f5f5f7;
-  border-color:#555861;
+  background:#303238 !important;
+  color:#f5f5f7 !important;
+  border-color:#555861 !important;
 }
 body.theme-graphite .capture-area .summary div{
-  background:#f3f6fb;
-  color:#111111;
+  background:#3a3d44 !important;
+  color:#f5f5f7 !important;
 }
 body.theme-graphite .capture-area .summary b{
-  color:#111111;
+  color:#ffffff !important;
 }
 body.theme-graphite .capture-area .row{
-  color:#f5f5f7;
-  border-bottom-color:#8b8d94;
+  color:#f5f5f7 !important;
+  border-bottom-color:#8b8d94 !important;
 }
 body.theme-graphite .capture-area .row .rowchev{
-  color:#b8bac0;
+  color:#b8bac0 !important;
 }
 body.theme-graphite .capture-area .muted{
-  color:#c8c9ce;
+  color:#c8c9ce !important;
 }
-
 </style>
 </head>
 <body>
@@ -738,7 +736,35 @@ async function saveReportImage(targetId,title){
   toast("画像を作成中…");
   const el=$(targetId);
   try{
-    const canvas=await html2canvas(el,{backgroundColor:"#ffffff",scale:2,useCORS:true,windowWidth:el.scrollWidth,windowHeight:el.scrollHeight});
+    const graphite=document.body.classList.contains("theme-graphite");
+    const canvas=await html2canvas(el,{
+      backgroundColor:graphite?"#222429":"#ffffff",
+      scale:2,
+      useCORS:true,
+      windowWidth:el.scrollWidth,
+      windowHeight:el.scrollHeight,
+      onclone:(doc)=>{
+        if(!graphite)return;
+        const cloned=doc.getElementById(targetId);
+        if(!cloned)return;
+        cloned.style.setProperty("background","#222429","important");
+        cloned.style.setProperty("color","#f5f5f7","important");
+        cloned.querySelectorAll(".capture-title").forEach(x=>x.style.setProperty("color","#f5f5f7","important"));
+        cloned.querySelectorAll(".capture-period").forEach(x=>x.style.setProperty("color","#d0d0d4","important"));
+        cloned.querySelectorAll(".report-card").forEach(x=>{
+          x.style.setProperty("background","#303238","important");
+          x.style.setProperty("color","#f5f5f7","important");
+          x.style.setProperty("border-color","#555861","important");
+        });
+        cloned.querySelectorAll(".summary div").forEach(x=>{
+          x.style.setProperty("background","#3a3d44","important");
+          x.style.setProperty("color","#f5f5f7","important");
+        });
+        cloned.querySelectorAll(".summary b").forEach(x=>x.style.setProperty("color","#ffffff","important"));
+        cloned.querySelectorAll(".row").forEach(x=>x.style.setProperty("color","#f5f5f7","important"));
+        cloned.querySelectorAll(".muted").forEach(x=>x.style.setProperty("color","#c8c9ce","important"));
+      }
+    });
     const blob=await new Promise(r=>canvas.toBlob(r,"image/png"));
     const file=new File([blob],`${title}_${new Date().toISOString().slice(0,10)}.png`,{type:"image/png"});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
