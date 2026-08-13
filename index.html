@@ -486,10 +486,7 @@ function saveEntry(){
   const date=$("date").value,amount=Number($("amount").value),d=$("debitAccount").value,c=$("creditAccount").value;
   if(!date||!amount||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
   entries.unshift({id:Date.now(),date,amount,debitAccount:d,debitSub:$("debitSub").value||"",creditAccount:c,creditSub:$("creditSub").value||"",memo:$("memo").value.trim()});
-  entries.sort((a,b)=>
-    String(b.date).localeCompare(String(a.date)) ||
-    Number(b.id||0)-Number(a.id||0)
-  );
+  entries.sort(compareEntriesNewestFirst);
   persist();
 
   // 仕訳登録フォームを完全に初期状態へ戻す
@@ -508,6 +505,15 @@ function saveEntry(){
 
   show("list");
 }
+function dateSortKey(value){
+  const m=String(value||"").match(/(\d{4})\D?(\d{1,2})\D?(\d{1,2})/);
+  if(!m)return 0;
+  return Number(m[1])*10000+Number(m[2])*100+Number(m[3]);
+}
+function compareEntriesNewestFirst(a,b){
+  return dateSortKey(b.date)-dateSortKey(a.date) || Number(b.id||0)-Number(a.id||0);
+}
+
 function accountLabel(aid,sid){
   const a=accountById(aid);if(!a)return"不明";
   const s=a.subs.find(x=>x.id===sid);return s?`${a.name} / ${s.name}`:a.name;
@@ -534,10 +540,7 @@ function renderList(){
     e.date<=range.to &&
     (!$("filterDebit").value||e.debitAccount===$("filterDebit").value) &&
     (!$("filterCredit").value||e.creditAccount===$("filterCredit").value)
-  ).slice().sort((a,b)=>
-    String(b.date).localeCompare(String(a.date)) ||
-    Number(b.id||0)-Number(a.id||0)
-  );
+  ).slice().sort(compareEntriesNewestFirst);
   $("entries").innerHTML=rows.length?rows.map(e=>`
     <div class="entry">
       <div class="date">${e.date}</div><div class="amount">¥${e.amount.toLocaleString()}</div>
@@ -561,6 +564,7 @@ function saveEditedEntry(){
   const amt=Number($("editAmount").value),d=$("editDebitAccount").value,c=$("editCreditAccount").value;
   if(!$("editDate").value||!amt||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
   Object.assign(e,{date:$("editDate").value,amount:amt,debitAccount:d,debitSub:$("editDebitSub").value||"",creditAccount:c,creditSub:$("editCreditSub").value||"",memo:$("editMemo").value.trim()});
+  entries.sort(compareEntriesNewestFirst);
   persist();closeModal("editModal");renderAll();toast("仕訳を修正しました");
 }
 function closeModal(id){$(id).classList.remove("show")}
