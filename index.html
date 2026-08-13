@@ -260,18 +260,7 @@ body.theme-graphite .section{background:#383a40;color:#fff}
   <div class="privacy-card">
     <h3>ホーム画面から使う</h3>
     <p>Safariでこのページを開き、共有ボタン →「ホーム画面に追加」→「Webアプリとして開く」を選ぶと、MasterLedgerのアイコンから起動できます。</p>
-    <div class="privacy-status">仕訳データはこの端末内に保存されます。</div>
-  </div>
-  <div class="privacy-card">
-    <h3>プライバシーとバックアップ</h3>
-    <p>仕訳データはこのiPhone / iPad内に保存します。仕訳内容を外部へ送信する処理はありません。</p>
-    <p>iCloudへ保管するときは、パスワードで暗号化したバックアップファイルを書き出してください。</p>
-    <div class="privacy-actions">
-      <button class="primary-mini" onclick="openBackupPassword()">🔒 暗号化バックアップ</button>
-      <button onclick="document.getElementById('encryptedRestore').click()">↩︎ 暗号化データを復元</button>
-    </div>
-    <input id="encryptedRestore" type="file" accept=".mlbackup,application/json" hidden>
-    <div id="privacyStatus" class="privacy-status">端末内保存：有効</div>
+    <div class="privacy-status">仕訳データはこの端末内に保存されます。バックアップはExcel / CSVで行えます。</div>
   </div>
   <div class="settings-row">
     <div><div class="name">背景</div><div class="meta">見やすい外観を選べます</div></div>
@@ -285,6 +274,11 @@ body.theme-graphite .section{background:#383a40;color:#fff}
   <div class="help-note">勘定科目の管理、仕訳データの読み込み・書き出し、背景の変更ができます。ExcelやCSVから仕訳を読み込むと、必要な勘定科目・補助勘定科目も自動で追加されます。</div>
   <div class="settings-row" onclick="show('accountCategories')">
     <div><div class="name">勘定科目・補助勘定科目</div><div class="meta">種類を選んで編集</div></div><span>›</span>
+  </div>
+  <div class="privacy-card">
+    <h3>データ保存とバックアップ</h3>
+    <p>仕訳データはこのiPhone / iPad内に保存されます。</p>
+    <p>バックアップや端末移行には、下の「仕訳データを書き出す」からExcelまたはCSVを保存してください。復元するときは「Excel仕訳帳を読み込む」から取り込めます。</p>
   </div>
   <div class="settings-row" onclick="document.getElementById('excelImport').click()">
     <div><div class="name">Excel仕訳帳を読み込む</div><div class="meta">仕訳・勘定科目・補助勘定科目を自動追加</div></div><span>›</span>
@@ -1283,114 +1277,6 @@ async function initializePrivateStorage(){
   }
 }
 
-function bytesToB64(bytes){
-  let s=""; for(let i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]);
-  return btoa(s);
-}
-function b64ToBytes(s){
-  const bin=atob(s), out=new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
-  return out;
-}
-async function deriveBackupKey(password,salt,usage){
-  const material=await crypto.subtle.importKey(
-    "raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveKey"]
-  );
-  return crypto.subtle.deriveKey(
-    {name:"PBKDF2",salt,iterations:250000,hash:"SHA-256"},
-    material,
-    {name:"AES-GCM",length:256},
-    false,
-    usage
-  );
-}
-async function encryptLedger(password){
-  const salt=crypto.getRandomValues(new Uint8Array(16));
-  const iv=crypto.getRandomValues(new Uint8Array(12));
-  const key=await deriveBackupKey(password,salt,["encrypt"]);
-  const payload=new TextEncoder().encode(JSON.stringify({
-    format:"MasterLedgerPrivateBackup",
-    version:1,
-    createdAt:new Date().toISOString(),
-    accounts,entries
-  }));
-  const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key,payload));
-  return JSON.stringify({
-    format:"MasterLedgerEncrypted",
-    version:1,
-    kdf:"PBKDF2-SHA256",
-    iterations:250000,
-    cipher:"AES-256-GCM",
-    salt:bytesToB64(salt),
-    iv:bytesToB64(iv),
-    data:bytesToB64(encrypted)
-  });
-}
-async function decryptLedger(text,password){
-  const pack=JSON.parse(text);
-  if(pack.format!=="MasterLedgerEncrypted") throw new Error("MasterLedgerの暗号化バックアップではありません。");
-  const salt=b64ToBytes(pack.salt), iv=b64ToBytes(pack.iv), data=b64ToBytes(pack.data);
-  const key=await deriveBackupKey(password,salt,["decrypt"]);
-  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);
-  const obj=JSON.parse(new TextDecoder().decode(plain));
-  if(!Array.isArray(obj.accounts)||!Array.isArray(obj.entries)) throw new Error("バックアップ内容が不正です。");
-  return obj;
-}
-
-let pendingRestoreFile=null;
-function openBackupPassword(){
-  pendingRestoreFile=null;
-  document.getElementById("passwordTitle").textContent="暗号化バックアップ";
-  document.getElementById("passwordDescription").textContent="8文字以上のパスワードを設定してください。パスワードは端末にもサーバーにも保存しません。";
-  document.getElementById("backupPassword").value="";
-  document.getElementById("passwordAction").textContent="バックアップ";
-  document.getElementById("passwordAction").onclick=runEncryptedBackup;
-  document.getElementById("passwordSheet").classList.add("show");
-}
-function closePasswordSheet(){
-  document.getElementById("passwordSheet").classList.remove("show");
-  document.getElementById("backupPassword").value="";
-  pendingRestoreFile=null;
-}
-async function runEncryptedBackup(){
-  const password=document.getElementById("backupPassword").value;
-  if(password.length<8){alert("パスワードは8文字以上にしてください。");return}
-  try{
-    const encrypted=await encryptLedger(password);
-    const d=new Date(), pad=n=>String(n).padStart(2,"0");
-    const name=`MasterLedger_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.mlbackup`;
-    const file=new File([encrypted],name,{type:"application/json"});
-    closePasswordSheet();
-    await offerFile(file); // iOSでは「ファイルに保存」からiCloud Driveを選べる
-    toast("暗号化バックアップを作成しました");
-  }catch(e){alert("バックアップに失敗しました：\n"+e.message)}
-}
-
-document.getElementById("encryptedRestore").addEventListener("change",e=>{
-  const file=e.target.files?.[0]; if(!file)return;
-  pendingRestoreFile=file;
-  document.getElementById("passwordTitle").textContent="暗号化バックアップを復元";
-  document.getElementById("passwordDescription").textContent="バックアップ作成時に設定したパスワードを入力してください。";
-  document.getElementById("backupPassword").value="";
-  document.getElementById("passwordAction").textContent="復元";
-  document.getElementById("passwordAction").onclick=runEncryptedRestore;
-  document.getElementById("passwordSheet").classList.add("show");
-  e.target.value="";
-});
-async function runEncryptedRestore(){
-  const password=document.getElementById("backupPassword").value;
-  if(!pendingRestoreFile)return;
-  try{
-    const text=await pendingRestoreFile.text();
-    const obj=await decryptLedger(text,password);
-    if(!confirm(`仕訳 ${obj.entries.length}件を復元します。現在のデータは置き換えられます。よろしいですか？`))return;
-    accounts=obj.accounts; entries=obj.entries;
-    persist(); closePasswordSheet(); renderAll();
-    toast("暗号化バックアップを復元しました");
-  }catch(e){
-    alert("復元できませんでした。パスワードまたはファイルを確認してください。");
-  }
-}
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
@@ -1412,16 +1298,6 @@ if(themeSelect){
 
 renderAll();
 </script>
-<div id="passwordSheet" class="password-sheet">
-  <div class="password-panel">
-    <h3 id="passwordTitle">暗号化バックアップ</h3>
-    <p id="passwordDescription">バックアップを開くためのパスワードを設定してください。このパスワードは保存されません。</p>
-    <input id="backupPassword" type="password" autocomplete="new-password" placeholder="パスワード（8文字以上）">
-    <div class="buttons">
-      <button class="secondary" onclick="closePasswordSheet()">キャンセル</button>
-      <button id="passwordAction" class="secondary" onclick="runEncryptedBackup()">実行</button>
-    </div>
-  </div>
 </div>
 </body>
 </html>
