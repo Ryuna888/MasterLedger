@@ -486,6 +486,10 @@ function saveEntry(){
   const date=$("date").value,amount=Number($("amount").value),d=$("debitAccount").value,c=$("creditAccount").value;
   if(!date||!amount||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
   entries.unshift({id:Date.now(),date,amount,debitAccount:d,debitSub:$("debitSub").value||"",creditAccount:c,creditSub:$("creditSub").value||"",memo:$("memo").value.trim()});
+  entries.sort((a,b)=>
+    String(b.date).localeCompare(String(a.date)) ||
+    Number(b.id||0)-Number(a.id||0)
+  );
   persist();
 
   // 仕訳登録フォームを完全に初期状態へ戻す
@@ -530,6 +534,9 @@ function renderList(){
     e.date<=range.to &&
     (!$("filterDebit").value||e.debitAccount===$("filterDebit").value) &&
     (!$("filterCredit").value||e.creditAccount===$("filterCredit").value)
+  ).slice().sort((a,b)=>
+    String(b.date).localeCompare(String(a.date)) ||
+    Number(b.id||0)-Number(a.id||0)
   );
   $("entries").innerHTML=rows.length?rows.map(e=>`
     <div class="entry">

@@ -1,4 +1,4 @@
-const CACHE="masterledger-homescreen-v1";
+const CACHE="masterledger-homescreen-v1-1";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 
 self.addEventListener("install",event=>{
