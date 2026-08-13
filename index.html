@@ -443,6 +443,23 @@ let renamingSubId = null;
 let accountReportAccountId = null;
 let accountReportSource = "pl";
 
+// ===== MasterLedger v2.0: data continuity / persistent storage =====
+// 既存の ml_v02_accounts / ml_v02_entries は変更しない。
+// アプリ本体のバージョンと帳簿データの保存キーを分離し、更新で仕訳を消さない。
+const ML_DATA_SCHEMA = 2;
+localStorage.setItem("ml_data_schema", String(ML_DATA_SCHEMA));
+
+async function requestPersistentStorage(){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      const already = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      if(!already) await navigator.storage.persist();
+    }
+  }catch(_){}
+}
+requestPersistentStorage();
+
+
 function persist(){
   localStorage.setItem("ml_v02_accounts",JSON.stringify(accounts));
   localStorage.setItem("ml_v02_entries",JSON.stringify(entries));
