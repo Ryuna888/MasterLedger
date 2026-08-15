@@ -178,6 +178,11 @@ body.theme-graphite .capture-area .account-note{
   color:#c8c9ce !important;
 }
 
+
+/* v2.3 Annual Report */
+.annual-wrap{padding:12px}.annual-month{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:14px;margin:12px 0}.annual-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}.annual-box h3{margin:0 0 8px}.annual-minirow{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}.annual-minirow.total{font-weight:700;border-top:2px solid var(--text);border-bottom:0;margin-top:4px}.annual-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px}.annual-summary>div{padding:12px;border:1px solid var(--line);border-radius:12px;text-align:center;background:var(--card)}.annual-summary b{display:block;font-size:18px;margin-top:4px}@media(max-width:560px){.annual-cols{grid-template-columns:1fr}}
+@media print{body{background:#fff!important}.app{max-width:none!important;padding:0!important}header,nav,.no-print,.toolbar,.section{display:none!important}#annualReport{display:block!important}.annual-wrap{padding:0}.annual-summary{page-break-after:always}.annual-month{page-break-after:always;border:0;border-radius:0;margin:0;padding:8mm 7mm;min-height:185mm}.annual-month:last-child{page-break-after:auto}.annual-cols{grid-template-columns:1fr 1fr!important;gap:8mm}.annual-minirow{font-size:10pt}.annual-box h3{font-size:13pt}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
 </style>
 </head>
 <body>
@@ -348,6 +353,9 @@ body.theme-graphite .capture-area .account-note{
   <input id="excelImport" type="file" accept=".xlsx,.xls,.csv,text/csv" class="hidden">
   <div id="importResult" class="notice hidden"></div>
   <div class="settings-row" onclick="show('export')"><div><div class="name">仕訳データを書き出す</div><div class="meta">Excel / CSV</div></div><span>›</span></div>
+  <div class="settings-row" onclick="openAnnualReport()">
+    <div><div class="name">年間決算書を作成</div><div class="meta">1月〜12月のP/L・B/Sを総振り返り</div></div><span>›</span>
+  </div>
   <div class="settings-row" onclick="show('about')">
     <div><div class="name">MasterLedgerについて</div><div class="meta">オフライン・データ保存・バージョン情報</div></div><span>›</span>
   </div>
@@ -361,7 +369,7 @@ body.theme-graphite .capture-area .account-note{
   <div class="section">MasterLedgerについて</div>
 
   <div class="privacy-card">
-    <h3>MasterLedger v2.2 UX Update</h3>
+    <h3>MasterLedger v2.3 Annual Report</h3>
     <p>複式簿記による個人向け帳簿アプリです。</p>
   </div>
 
@@ -382,8 +390,21 @@ body.theme-graphite .capture-area .account-note{
 
   <div class="report-card">
     <h3>アップデート</h3>
-    <p>アプリ本体と帳簿データの保存領域を分けています。v2.2でも従来の保存キーをそのまま使用しているため、これまでの仕訳・科目・並び順を引き継ぐ設計です。</p>
+    <p>アプリ本体と帳簿データの保存領域を分けています。v2.3でも従来の保存キーをそのまま使用しているため、これまでの仕訳・科目・並び順を引き継ぐ設計です。</p>
   </div>
+</section>
+
+
+<section id="annualReport" class="screen">
+  <div class="toolbar no-print"><button class="secondary" onclick="show('settings')">‹ 設定</button></div>
+  <div class="section">年間決算書</div>
+  <div class="report-controls no-print">
+    <div class="filter-label">対象年</div>
+    <select id="annualYear"></select>
+    <button class="primary" style="width:100%;margin:10px 0 0" onclick="printAnnualReport()">PDFとして保存 / 印刷</button>
+    <div class="help-note" style="margin:10px 0 0">年間サマリー＋各月の損益計算書・バランスシートを作成します。iPhoneでは印刷画面から共有して「ファイルに保存」するとPDFとして残せます。</div>
+  </div>
+  <div id="annualCapture" class="annual-wrap"></div>
 </section>
 
 <section id="accountCategories" class="screen">
@@ -564,7 +585,7 @@ function jpDateRange(a,b){return `${a.replaceAll("-","/")} 〜 ${b.replaceAll("-
 function show(id){
   document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
   $(id).classList.add("active");
-  $("title").textContent={register:"仕訳登録",list:"仕訳一覧",pl:"損益計算書",bs:"バランスシート",settings:"設定",accountCategories:"勘定科目の種類",accounts:catName(selectedAccountCategory),accountReport:"補助勘定科目",export:"データ書き出し"}[id];
+  $("title").textContent={register:"仕訳登録",list:"仕訳一覧",pl:"損益計算書",bs:"バランスシート",settings:"設定",accountCategories:"勘定科目の種類",accounts:catName(selectedAccountCategory),accountReport:"補助勘定科目",export:"データ書き出し",annualReport:"年間決算書"}[id];
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===id));
   if(id==="register") syncRegisterToday(false);
   renderAll();
@@ -1333,6 +1354,54 @@ async function exportCSV(){
   const file=new File([csv],filename,{type:"text/csv;charset=utf-8"});
   await offerFile(file);
 }
+// ===== v2.3 年間決算書 =====
+function annualYearOptions(){
+  const years=new Set(entries.map(e=>Number(String(e.date||"").slice(0,4))).filter(Boolean));
+  years.add(new Date().getFullYear());
+  return [...years].sort((a,b)=>b-a);
+}
+function openAnnualReport(){
+  const sel=$("annualYear");
+  sel.innerHTML=annualYearOptions().map(y=>`<option value="${y}">${y}年</option>`).join("");
+  sel.value=String(new Date().getFullYear());
+  sel.onchange=renderAnnualReport;
+  show("annualReport");
+  renderAnnualReport();
+}
+function annualMonthEnd(y,m){return localISODate(new Date(y,m,0))}
+function annualMoney(v){return "¥"+Number(v||0).toLocaleString()}
+function annualRows(cat,b){return accounts.filter(a=>a.category===cat).map(a=>({a,v:b[a.id]||0})).filter(x=>x.v!==0)}
+function annualTable(title,cat,b,total,label){
+  const rows=annualRows(cat,b);
+  const body=rows.length?rows.map(x=>`<div class="annual-minirow"><span>${escapeHTML(x.a.name)}${cat==="liability"&&x.a.memo?`<span class="account-note">${escapeHTML(x.a.memo)}</span>`:""}</span><b>${annualMoney(x.v)}</b></div>`).join(""):'<div class="muted">該当なし</div>';
+  return `<h3>${title}</h3>${body}<div class="annual-minirow total"><span>${label}</span><b>${annualMoney(total)}</b></div>`;
+}
+function annualMonthData(y,m){
+  const from=`${y}-${String(m).padStart(2,"0")}-01`,to=annualMonthEnd(y,m);
+  const pb=balancesFor(periodEntries(from,to));
+  const sales=sumCat("sales",pb),expense=sumCat("expense",pb),sg=sumCat("specialGain",pb),sl=sumCat("specialLoss",pb),net=sales-expense+sg-sl;
+  const bb=balancesFor(periodEntries("",to));
+  const asset=sumCat("asset",bb),liability=sumCat("liability",bb),equityBase=sumCat("equity",bb);
+  const bsNet=sumCat("sales",bb)-sumCat("expense",bb)+sumCat("specialGain",bb)-sumCat("specialLoss",bb);
+  const equity=equityBase+bsNet;
+  return {m,from,to,pb,bb,sales,expense,sg,sl,net,asset,liability,equity,bsNet};
+}
+function renderAnnualReport(){
+  if(!$("annualCapture")||!$("annualYear"))return;
+  const y=Number($("annualYear").value)||new Date().getFullYear();
+  const ms=Array.from({length:12},(_,i)=>annualMonthData(y,i+1));
+  const annualSales=ms.reduce((s,x)=>s+x.sales,0),annualExpense=ms.reduce((s,x)=>s+x.expense,0),annualNet=ms.reduce((s,x)=>s+x.net,0);
+  const summary=`<div><div class="capture-title">${y}年 年間決算書</div><div class="capture-period">MasterLedger 年間振り返り</div><div class="annual-summary"><div>年間売上<b>${annualMoney(annualSales)}</b></div><div>年間販管費<b>${annualMoney(annualExpense)}</b></div><div>年間損益<b>${annualMoney(annualNet)}</b></div></div><div class="report-card">${ms.map(x=>`<div class="row"><span>${x.m}月</span><span>売上 ${annualMoney(x.sales)} ／ 費用 ${annualMoney(x.expense)} ／ 損益 <b>${annualMoney(x.net)}</b></span></div>`).join("")}</div></div>`;
+  const pages=ms.map(x=>`<div class="annual-month"><div class="capture-title">${y}年${x.m}月</div><div class="capture-period">${x.from.replaceAll("-","/")} 〜 ${x.to.replaceAll("-","/")} ／ B/S ${x.to.replaceAll("-","/")}現在</div><div class="annual-cols"><div class="annual-box"><h2>損益計算書</h2>${annualTable("売上","sales",x.pb,x.sales,"売上合計")}${annualTable("販管費","expense",x.pb,x.expense,"販管費合計")}${annualTable("特別利益","specialGain",x.pb,x.sg,"特別利益合計")}${annualTable("特別損失","specialLoss",x.pb,x.sl,"特別損失合計")}<div class="annual-minirow total"><span>当期利益</span><b>${annualMoney(x.net)}</b></div></div><div class="annual-box"><h2>バランスシート</h2>${annualTable("資産の部","asset",x.bb,x.asset,"資産合計")}${annualTable("負債の部","liability",x.bb,x.liability,"負債合計")}${annualTable("純資産の部","equity",x.bb,x.equity,"純資産合計")}${x.bsNet!==0?`<div class="annual-minirow"><span>当期利益（累積）</span><b>${annualMoney(x.bsNet)}</b></div>`:""}<div class="annual-minirow total"><span>貸借差額</span><b>${annualMoney(x.asset-(x.liability+x.equity))}</b></div></div></div></div>`).join("");
+  $("annualCapture").innerHTML=summary+pages;
+}
+function printAnnualReport(){
+  renderAnnualReport();
+  const y=Number($("annualYear").value)||new Date().getFullYear();
+  const old=document.title;document.title=`${y}年_MasterLedger_年間決算書`;
+  window.print();setTimeout(()=>document.title=old,1200);
+}
+
 function resetAccounts(){
   if(entries.length){alert("仕訳が残っているため初期化できません。先に仕訳を全削除してください。");return}
   if(confirm("勘定科目を初期状態に戻しますか？")){accounts=clone(defaultAccounts);persist();renderAll()}
