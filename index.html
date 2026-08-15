@@ -179,9 +179,174 @@ body.theme-graphite .capture-area .account-note{
 }
 
 
-/* v2.3 Annual Report */
-.annual-wrap{padding:12px}.annual-month{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:14px;margin:12px 0}.annual-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}.annual-box h3{margin:0 0 8px}.annual-minirow{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}.annual-minirow.total{font-weight:700;border-top:2px solid var(--text);border-bottom:0;margin-top:4px}.annual-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px}.annual-summary>div{padding:12px;border:1px solid var(--line);border-radius:12px;text-align:center;background:var(--card)}.annual-summary b{display:block;font-size:18px;margin-top:4px}@media(max-width:560px){.annual-cols{grid-template-columns:1fr}}
-@media print{body{background:#fff!important}.app{max-width:none!important;padding:0!important}header,nav,.no-print,.toolbar,.section{display:none!important}#annualReport{display:block!important}.annual-wrap{padding:0}.annual-summary{page-break-after:always}.annual-month{page-break-after:always;border:0;border-radius:0;margin:0;padding:8mm 7mm;min-height:185mm}.annual-month:last-child{page-break-after:auto}.annual-cols{grid-template-columns:1fr 1fr!important;gap:8mm}.annual-minirow{font-size:10pt}.annual-box h3{font-size:13pt}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+/* v2.4 Annual Report Fixed */
+.annual-wrap{padding:12px}
+.annual-summary{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin:12px;
+}
+.annual-summary>div{
+  min-width:0;
+  padding:11px 5px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  text-align:center;
+  background:var(--card);
+  font-size:12px;
+  font-weight:700;
+}
+.annual-summary b{
+  display:block;
+  margin-top:5px;
+  font-size:clamp(13px,4.0vw,18px);
+  line-height:1.1;
+  white-space:nowrap;
+  letter-spacing:-.035em;
+}
+.annual-month{
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--card);
+  padding:14px;
+  margin:12px 0;
+}
+.annual-cols{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:14px;
+}
+.annual-box{min-width:0}
+.annual-box h2{margin:0 0 8px;font-size:18px}
+.annual-box h3{margin:7px 0 4px;font-size:14px}
+.annual-minirow{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:8px;
+  padding:4px 0;
+  border-bottom:1px solid var(--line);
+  font-size:12px;
+  line-height:1.25;
+}
+.annual-minirow>span{min-width:0;overflow-wrap:anywhere}
+.annual-minirow>b{white-space:nowrap}
+.annual-minirow.total{
+  font-weight:700;
+  border-top:2px solid var(--text);
+  border-bottom:0;
+  margin-top:3px;
+}
+.annual-month .account-note{
+  font-size:10px;
+  line-height:1.2;
+  margin-top:2px;
+}
+.annual-month-title{margin:0;text-align:center;font-size:21px}
+.annual-month-period{text-align:center;color:var(--muted);font-size:11px;margin:4px 0 10px}
+.annual-monthly-table .row{font-size:12px;padding:6px 0}
+.annual-loss{color:#c62828}
+.annual-profit{color:#0a67d1}
+
+@media(max-width:560px){
+  .annual-summary{gap:6px;margin:10px 8px}
+  .annual-summary>div{padding:9px 3px;font-size:11px}
+  .annual-summary b{font-size:clamp(12px,3.6vw,17px)}
+  /* 画面上では縦並びでもよいが、印刷時は必ず左右2列 */
+  .annual-cols{grid-template-columns:1fr}
+}
+
+@page{
+  size:A4 landscape;
+  margin:5mm;
+}
+@media print{
+  html,body{margin:0!important;padding:0!important;background:#fff!important}
+  .app{max-width:none!important;width:100%!important;padding:0!important;background:#fff!important}
+  header,nav,.no-print,.toolbar,.section,.report-controls{display:none!important}
+  .screen{display:none!important}
+  #annualReport{display:block!important}
+  #annualCapture{padding:0!important}
+
+  .annual-summary-page{
+    box-sizing:border-box!important;
+    width:100%!important;
+    height:195mm!important;
+    padding:7mm 8mm!important;
+    overflow:hidden!important;
+    break-after:page!important;
+    page-break-after:always!important;
+  }
+  .annual-summary-page .capture-title{font-size:20pt!important;margin:0 0 2mm!important}
+  .annual-summary-page .capture-period{font-size:10pt!important;margin-bottom:4mm!important}
+  .annual-summary-page .annual-summary{margin:0 0 5mm!important;gap:4mm!important}
+  .annual-summary-page .annual-summary>div{padding:4mm 2mm!important;font-size:9pt!important}
+  .annual-summary-page .annual-summary b{font-size:15pt!important}
+  .annual-summary-page .report-card{margin:0!important;padding:4mm!important}
+  .annual-summary-page .row{font-size:8.5pt!important;padding:1.6mm 0!important}
+
+  /* 1ページ = 1か月を固定 */
+  .annual-month{
+    box-sizing:border-box!important;
+    width:100%!important;
+    height:195mm!important;
+    max-height:195mm!important;
+    margin:0!important;
+    padding:5mm 6mm!important;
+    border:0!important;
+    border-radius:0!important;
+    overflow:hidden!important;
+    background:#fff!important;
+    color:#111!important;
+    break-after:page!important;
+    page-break-after:always!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  .annual-month:last-child{
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+  .annual-month-title{font-size:16pt!important;line-height:1!important;margin:0!important}
+  .annual-month-period{font-size:8pt!important;margin:1.4mm 0 3mm!important;color:#555!important}
+  .annual-cols{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:6mm!important;
+    height:174mm!important;
+    align-items:start!important;
+  }
+  .annual-box{min-width:0!important}
+  .annual-box h2{
+    font-size:12pt!important;
+    margin:0 0 2mm!important;
+    border-bottom:1.5pt solid #222!important;
+    padding-bottom:1.5mm!important;
+  }
+  .annual-box h3{font-size:8.7pt!important;margin:2mm 0 .7mm!important}
+  .annual-minirow{
+    font-size:6.9pt!important;
+    line-height:1.05!important;
+    padding:.62mm 0!important;
+    gap:2mm!important;
+    border-bottom:.35pt solid #bbb!important;
+  }
+  .annual-minirow.total{
+    border-top:1pt solid #222!important;
+    margin-top:.7mm!important;
+    padding-top:.8mm!important;
+  }
+  .annual-month .account-note{
+    font-size:5.5pt!important;
+    line-height:1!important;
+    margin-top:.25mm!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
 
 </style>
 </head>
@@ -369,7 +534,7 @@ body.theme-graphite .capture-area .account-note{
   <div class="section">MasterLedgerについて</div>
 
   <div class="privacy-card">
-    <h3>MasterLedger v2.3 Annual Report</h3>
+    <h3>MasterLedger v2.4 Annual Report Fixed</h3>
     <p>複式簿記による個人向け帳簿アプリです。</p>
   </div>
 
@@ -390,7 +555,7 @@ body.theme-graphite .capture-area .account-note{
 
   <div class="report-card">
     <h3>アップデート</h3>
-    <p>アプリ本体と帳簿データの保存領域を分けています。v2.3でも従来の保存キーをそのまま使用しているため、これまでの仕訳・科目・並び順を引き継ぐ設計です。</p>
+    <p>アプリ本体と帳簿データの保存領域を分けています。v2.4でも従来の保存キーをそのまま使用しているため、これまでの仕訳・科目・並び順を引き継ぐ設計です。</p>
   </div>
 </section>
 
@@ -1370,11 +1535,19 @@ function openAnnualReport(){
 }
 function annualMonthEnd(y,m){return localISODate(new Date(y,m,0))}
 function annualMoney(v){return "¥"+Number(v||0).toLocaleString()}
+function annualMan(v){
+  const n=Number(v||0)/10000;
+  const rounded=Math.round(n*10)/10;
+  return `${rounded.toLocaleString("ja-JP",{minimumFractionDigits:1,maximumFractionDigits:1})}万円`;
+}
 function annualRows(cat,b){return accounts.filter(a=>a.category===cat).map(a=>({a,v:b[a.id]||0})).filter(x=>x.v!==0)}
-function annualTable(title,cat,b,total,label){
+function annualTable(title,cat,b,total,label,hideWhenEmpty=false){
   const rows=annualRows(cat,b);
-  const body=rows.length?rows.map(x=>`<div class="annual-minirow"><span>${escapeHTML(x.a.name)}${cat==="liability"&&x.a.memo?`<span class="account-note">${escapeHTML(x.a.memo)}</span>`:""}</span><b>${annualMoney(x.v)}</b></div>`).join(""):'<div class="muted">該当なし</div>';
-  return `<h3>${title}</h3>${body}<div class="annual-minirow total"><span>${label}</span><b>${annualMoney(total)}</b></div>`;
+  if(hideWhenEmpty && rows.length===0 && Number(total||0)===0)return "";
+  const body=rows.length
+    ? rows.map(x=>`<div class="annual-minirow"><span>${escapeHTML(x.a.name)}${cat==="liability"&&x.a.memo?`<span class="account-note">${escapeHTML(x.a.memo)}</span>`:""}</span><b>${annualMoney(x.v)}</b></div>`).join("")
+    : '<div class="annual-minirow"><span>該当なし</span><b>¥0</b></div>';
+  return `<div class="annual-table"><h3>${title}</h3>${body}<div class="annual-minirow total"><span>${label}</span><b>${annualMoney(total)}</b></div></div>`;
 }
 function annualMonthData(y,m){
   const from=`${y}-${String(m).padStart(2,"0")}-01`,to=annualMonthEnd(y,m);
@@ -1390,9 +1563,49 @@ function renderAnnualReport(){
   if(!$("annualCapture")||!$("annualYear"))return;
   const y=Number($("annualYear").value)||new Date().getFullYear();
   const ms=Array.from({length:12},(_,i)=>annualMonthData(y,i+1));
-  const annualSales=ms.reduce((s,x)=>s+x.sales,0),annualExpense=ms.reduce((s,x)=>s+x.expense,0),annualNet=ms.reduce((s,x)=>s+x.net,0);
-  const summary=`<div><div class="capture-title">${y}年 年間決算書</div><div class="capture-period">MasterLedger 年間振り返り</div><div class="annual-summary"><div>年間売上<b>${annualMoney(annualSales)}</b></div><div>年間販管費<b>${annualMoney(annualExpense)}</b></div><div>年間損益<b>${annualMoney(annualNet)}</b></div></div><div class="report-card">${ms.map(x=>`<div class="row"><span>${x.m}月</span><span>売上 ${annualMoney(x.sales)} ／ 費用 ${annualMoney(x.expense)} ／ 損益 <b>${annualMoney(x.net)}</b></span></div>`).join("")}</div></div>`;
-  const pages=ms.map(x=>`<div class="annual-month"><div class="capture-title">${y}年${x.m}月</div><div class="capture-period">${x.from.replaceAll("-","/")} 〜 ${x.to.replaceAll("-","/")} ／ B/S ${x.to.replaceAll("-","/")}現在</div><div class="annual-cols"><div class="annual-box"><h2>損益計算書</h2>${annualTable("売上","sales",x.pb,x.sales,"売上合計")}${annualTable("販管費","expense",x.pb,x.expense,"販管費合計")}${annualTable("特別利益","specialGain",x.pb,x.sg,"特別利益合計")}${annualTable("特別損失","specialLoss",x.pb,x.sl,"特別損失合計")}<div class="annual-minirow total"><span>当期利益</span><b>${annualMoney(x.net)}</b></div></div><div class="annual-box"><h2>バランスシート</h2>${annualTable("資産の部","asset",x.bb,x.asset,"資産合計")}${annualTable("負債の部","liability",x.bb,x.liability,"負債合計")}${annualTable("純資産の部","equity",x.bb,x.equity,"純資産合計")}${x.bsNet!==0?`<div class="annual-minirow"><span>当期利益（累積）</span><b>${annualMoney(x.bsNet)}</b></div>`:""}<div class="annual-minirow total"><span>貸借差額</span><b>${annualMoney(x.asset-(x.liability+x.equity))}</b></div></div></div></div>`).join("");
+  const annualSales=ms.reduce((s,x)=>s+x.sales,0);
+  const annualExpense=ms.reduce((s,x)=>s+x.expense,0);
+  const annualNet=ms.reduce((s,x)=>s+x.net,0);
+
+  const summary=`<div class="annual-summary-page">
+    <div class="capture-title">${y}年 年間決算書</div>
+    <div class="capture-period">MasterLedger 年間振り返り</div>
+    <div class="annual-summary">
+      <div>年間売上<b>${annualMan(annualSales)}</b></div>
+      <div>年間販管費<b>${annualMan(annualExpense)}</b></div>
+      <div>年間損益<b class="${annualNet<0?"annual-loss":annualNet>0?"annual-profit":""}">${annualMan(annualNet)}</b></div>
+    </div>
+    <div class="report-card annual-monthly-table">
+      ${ms.map(x=>`<div class="row">
+        <span>${x.m}月</span>
+        <span>売上 ${annualMoney(x.sales)} ／ 販管費 ${annualMoney(x.expense)} ／ 損益 <b class="${x.net<0?"annual-loss":x.net>0?"annual-profit":""}">${annualMoney(x.net)}</b></span>
+      </div>`).join("")}
+    </div>
+  </div>`;
+
+  const pages=ms.map(x=>`<div class="annual-month">
+    <h1 class="annual-month-title">${y}年${x.m}月</h1>
+    <div class="annual-month-period">${x.from.replaceAll("-","/")} 〜 ${x.to.replaceAll("-","/")} ／ B/S ${x.to.replaceAll("-","/")}現在</div>
+    <div class="annual-cols">
+      <div class="annual-box">
+        <h2>損益計算書</h2>
+        ${annualTable("売上","sales",x.pb,x.sales,"売上合計")}
+        ${annualTable("販管費","expense",x.pb,x.expense,"販管費合計")}
+        ${annualTable("特別利益","specialGain",x.pb,x.sg,"特別利益合計")}
+        ${annualTable("特別損失","specialLoss",x.pb,x.sl,"特別損失合計")}
+        <div class="annual-minirow total"><span>当期利益</span><b class="${x.net<0?"annual-loss":x.net>0?"annual-profit":""}">${annualMoney(x.net)}</b></div>
+      </div>
+      <div class="annual-box">
+        <h2>バランスシート</h2>
+        ${annualTable("資産の部","asset",x.bb,x.asset,"資産合計")}
+        ${annualTable("負債の部","liability",x.bb,x.liability,"負債合計")}
+        ${annualTable("純資産の部","equity",x.bb,x.equity,"純資産合計")}
+        ${x.bsNet!==0?`<div class="annual-minirow"><span>当期利益（累積）</span><b>${annualMoney(x.bsNet)}</b></div>`:""}
+        <div class="annual-minirow total"><span>貸借差額</span><b>${annualMoney(x.asset-(x.liability+x.equity))}</b></div>
+      </div>
+    </div>
+  </div>`).join("");
+
   $("annualCapture").innerHTML=summary+pages;
 }
 function printAnnualReport(){
