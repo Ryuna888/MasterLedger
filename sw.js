@@ -1,4 +1,4 @@
-const CACHE="masterledger-offline-v2-4-fixed";
+const CACHE="masterledger-offline-v2-5";
 const LOCAL_SHELL=[
   "./",
   "./index.html",

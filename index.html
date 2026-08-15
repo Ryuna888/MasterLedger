@@ -348,6 +348,18 @@ body.theme-graphite .capture-area .account-note{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
 
+/* v2.5 年次月別推移 */
+.trend-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+.trend-title{font-size:18px;font-weight:800}.trend-total{font-size:16px;font-weight:800;white-space:nowrap}
+.trend-chart{height:250px;display:grid;grid-template-columns:repeat(12,minmax(18px,1fr));gap:7px;align-items:end;padding:16px 2px 4px;border-bottom:1px solid var(--line)}
+.trend-bar-wrap{height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0}
+.trend-value{font-size:9px;line-height:1.05;margin-bottom:5px;white-space:nowrap;transform:rotate(-55deg);min-height:28px;color:var(--muted)}
+.trend-bar-slot{width:100%;flex:1;display:flex;align-items:flex-end;justify-content:center}.trend-bar{width:min(30px,82%);min-height:2px;border-radius:6px 6px 2px 2px;background:var(--blue)}
+.trend-month{margin-top:5px;font-size:10px;color:var(--muted)}.trend-zero .trend-bar{opacity:.22}
+.trend-table-row{display:grid;grid-template-columns:54px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}.trend-table-row:last-child{border-bottom:0}.trend-table-row b{text-align:right}
+body.theme-graphite .trend-bar{background:#5aa7ff}
+@media(max-width:420px){.trend-chart{gap:4px;height:235px}.trend-value{font-size:8px}.trend-month{font-size:9px}}
+
 </style>
 </head>
 <body>
@@ -521,6 +533,9 @@ body.theme-graphite .capture-area .account-note{
   <div class="settings-row" onclick="openAnnualReport()">
     <div><div class="name">年間決算書を作成</div><div class="meta">1月〜12月のP/L・B/Sを総振り返り</div></div><span>›</span>
   </div>
+  <div class="settings-row" onclick="openAnnualTrend()">
+    <div><div class="name">年次月別推移</div><div class="meta">勘定科目を選んで1〜12月の推移を見る</div></div><span>›</span>
+  </div>
   <div class="settings-row" onclick="show('about')">
     <div><div class="name">MasterLedgerについて</div><div class="meta">オフライン・データ保存・バージョン情報</div></div><span>›</span>
   </div>
@@ -534,7 +549,7 @@ body.theme-graphite .capture-area .account-note{
   <div class="section">MasterLedgerについて</div>
 
   <div class="privacy-card">
-    <h3>MasterLedger v2.4 Annual Report Fixed</h3>
+    <h3>MasterLedger v2.5 Annual Monthly Trend</h3>
     <p>複式簿記による個人向け帳簿アプリです。</p>
   </div>
 
@@ -555,7 +570,7 @@ body.theme-graphite .capture-area .account-note{
 
   <div class="report-card">
     <h3>アップデート</h3>
-    <p>アプリ本体と帳簿データの保存領域を分けています。v2.4でも従来の保存キーをそのまま使用しているため、これまでの仕訳・科目・並び順を引き継ぐ設計です。</p>
+    <p>アプリ本体と帳簿データの保存領域を分けています。v2.5でも従来の保存キーをそのまま使用しているため、これまでの仕訳・科目・並び順を引き継ぐ設計です。</p>
   </div>
 </section>
 
@@ -570,6 +585,21 @@ body.theme-graphite .capture-area .account-note{
     <div class="help-note" style="margin:10px 0 0">年間サマリー＋各月の損益計算書・バランスシートを作成します。iPhoneでは印刷画面から共有して「ファイルに保存」するとPDFとして残せます。</div>
   </div>
   <div id="annualCapture" class="annual-wrap"></div>
+</section>
+
+<section id="annualTrend" class="screen">
+  <div class="toolbar"><button class="secondary" onclick="show('settings')">‹ 設定</button></div>
+  <div class="section">年次月別推移</div>
+  <div class="report-controls">
+    <div class="filter-label">対象年</div><select id="trendYear"></select>
+    <div class="filter-label">勘定科目</div><select id="trendAccount"></select>
+    <div id="trendModeNote" class="help-note" style="margin:10px 0 0"></div>
+  </div>
+  <div class="report-card">
+    <div class="trend-head"><div><div id="trendTitle" class="trend-title">月別推移</div><div id="trendSubtitle" class="muted"></div></div><div id="trendYearTotal" class="trend-total"></div></div>
+    <div id="trendChart" class="trend-chart"></div>
+  </div>
+  <div class="report-card"><h3>月別金額</h3><div id="trendTable"></div></div>
 </section>
 
 <section id="accountCategories" class="screen">
@@ -750,7 +780,7 @@ function jpDateRange(a,b){return `${a.replaceAll("-","/")} 〜 ${b.replaceAll("-
 function show(id){
   document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
   $(id).classList.add("active");
-  $("title").textContent={register:"仕訳登録",list:"仕訳一覧",pl:"損益計算書",bs:"バランスシート",settings:"設定",accountCategories:"勘定科目の種類",accounts:catName(selectedAccountCategory),accountReport:"補助勘定科目",export:"データ書き出し",annualReport:"年間決算書"}[id];
+  $("title").textContent={register:"仕訳登録",list:"仕訳一覧",pl:"損益計算書",bs:"バランスシート",settings:"設定",accountCategories:"勘定科目の種類",accounts:catName(selectedAccountCategory),accountReport:"補助勘定科目",export:"データ書き出し",annualReport:"年間決算書",annualTrend:"年次月別推移"}[id];
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===id));
   if(id==="register") syncRegisterToday(false);
   renderAll();
@@ -1520,6 +1550,64 @@ async function exportCSV(){
   await offerFile(file);
 }
 // ===== v2.3 年間決算書 =====
+// ===== v2.5 Annual Monthly Trend =====
+function trendYears(){
+  const years=new Set(entries.map(e=>Number(String(e.date||"").slice(0,4))).filter(Boolean));
+  years.add(new Date().getFullYear());
+  return [...years].sort((a,b)=>b-a);
+}
+function trendAccountOptions(){
+  let out='<option value="">勘定科目を選択</option>';
+  for(const c of categories){
+    const rows=accounts.filter(a=>a.category===c.id);
+    if(!rows.length)continue;
+    out+=`<optgroup label="${escapeHTML(c.name)}">`+rows.map(a=>`<option value="${a.id}">${escapeHTML(a.name)}</option>`).join("")+'</optgroup>';
+  }
+  return out;
+}
+function openAnnualTrend(){
+  const y=$("trendYear"), a=$("trendAccount");
+  y.innerHTML=trendYears().map(v=>`<option value="${v}">${v}年</option>`).join("");
+  y.value=String(new Date().getFullYear());
+  a.innerHTML=trendAccountOptions();
+  y.onchange=renderAnnualTrend;
+  a.onchange=renderAnnualTrend;
+  show("annualTrend");
+  renderAnnualTrend();
+}
+function trendMonthValue(a,y,m){
+  const from=`${y}-${String(m).padStart(2,"0")}-01`,to=localISODate(new Date(y,m,0));
+  const isPL=["sales","expense","specialGain","specialLoss"].includes(a.category);
+  const b=balancesFor(isPL?periodEntries(from,to):periodEntries("",to));
+  return b[a.id]||0;
+}
+function trendCompact(v){
+  const n=Number(v||0),a=Math.abs(n);
+  if(a>=1000000)return `${(n/10000).toFixed(0)}万`;
+  if(a>=10000)return `${(n/10000).toFixed(1)}万`;
+  return n.toLocaleString("ja-JP");
+}
+function renderAnnualTrend(){
+  const y=Number($("trendYear")?.value)||new Date().getFullYear();
+  const a=accountById($("trendAccount")?.value);
+  if(!a){
+    $("trendTitle").textContent="月別推移";$("trendSubtitle").textContent="";$("trendYearTotal").textContent="";
+    $("trendModeNote").textContent="勘定科目を選択してください。";
+    $("trendChart").innerHTML='<div class="empty" style="grid-column:1/-1">勘定科目を選択するとグラフを表示します</div>';
+    $("trendTable").innerHTML="";return;
+  }
+  const isPL=["sales","expense","specialGain","specialLoss"].includes(a.category);
+  const vals=Array.from({length:12},(_,i)=>trendMonthValue(a,y,i+1));
+  const max=Math.max(1,...vals.map(v=>Math.abs(v)));
+  $("trendTitle").textContent=`${y}年 ${a.name}`;
+  $("trendSubtitle").textContent=isPL?"月ごとの発生額":"各月末時点の残高";
+  $("trendModeNote").textContent=isPL?"損益計算書の科目は各月に発生した金額を表示します。":"バランスシートの科目は各月末時点の残高を表示します。";
+  const head=isPL?vals.reduce((s,v)=>s+v,0):vals[11];
+  $("trendYearTotal").textContent=isPL?`年間 ${annualMoney(head)}`:`12月末 ${annualMoney(head)}`;
+  $("trendChart").innerHTML=vals.map((v,i)=>`<div class="trend-bar-wrap ${v===0?"trend-zero":""}"><div class="trend-value">${trendCompact(v)}</div><div class="trend-bar-slot"><div class="trend-bar" style="height:${Math.max(1.5,Math.abs(v)/max*100)}%"></div></div><div class="trend-month">${i+1}月</div></div>`).join("");
+  $("trendTable").innerHTML=vals.map((v,i)=>`<div class="trend-table-row"><span>${i+1}月</span><b>${annualMoney(v)}</b></div>`).join("");
+}
+
 function annualYearOptions(){
   const years=new Set(entries.map(e=>Number(String(e.date||"").slice(0,4))).filter(Boolean));
   years.add(new Date().getFullYear());
