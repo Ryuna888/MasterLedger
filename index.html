@@ -150,6 +150,34 @@ body.theme-graphite .capture-area .row .rowchev{
 body.theme-graphite .capture-area .muted{
   color:#c8c9ce !important;
 }
+
+/* v2.2 UX Update */
+.today-banner{
+  margin:10px 12px 2px;
+  padding:10px 14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--card);
+  font-size:14px;
+  font-weight:700;
+  text-align:center;
+}
+.account-note{
+  display:block;
+  margin-top:3px;
+  font-size:12px;
+  line-height:1.45;
+  color:var(--muted);
+  white-space:pre-wrap;
+}
+body.theme-graphite .today-banner{
+  background:var(--card);
+  color:var(--text);
+}
+body.theme-graphite .capture-area .account-note{
+  color:#c8c9ce !important;
+}
+
 </style>
 </head>
 <body>
@@ -157,9 +185,10 @@ body.theme-graphite .capture-area .muted{
 <header id="title">仕訳登録</header>
 
 <section id="register" class="screen active">
+  <div class="today-banner" id="todayBanner" aria-live="polite"></div>
   <div class="compact-card">
     <div class="form-row"><label>日付</label><input id="date" type="date"></div>
-    <div class="form-row"><label>金額</label><input id="amount" type="number" min="1" placeholder="金額"></div>
+    <div class="form-row"><label>金額</label><input id="amount" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" autocomplete="off" maxlength="12" placeholder="金額"></div>
   </div>
 
   <div class="section">借方</div>
@@ -332,7 +361,7 @@ body.theme-graphite .capture-area .muted{
   <div class="section">MasterLedgerについて</div>
 
   <div class="privacy-card">
-    <h3>MasterLedger v2.1 Offline Edition</h3>
+    <h3>MasterLedger v2.2 UX Update</h3>
     <p>複式簿記による個人向け帳簿アプリです。</p>
   </div>
 
@@ -353,7 +382,7 @@ body.theme-graphite .capture-area .muted{
 
   <div class="report-card">
     <h3>アップデート</h3>
-    <p>アプリ本体と帳簿データの保存領域を分けています。v2.1でも従来の保存キーをそのまま使用しているため、v2.0から更新しても既存の仕訳・科目を引き継ぐ設計です。</p>
+    <p>アプリ本体と帳簿データの保存領域を分けています。v2.2でも従来の保存キーをそのまま使用しているため、これまでの仕訳・科目・並び順を引き継ぐ設計です。</p>
   </div>
 </section>
 
@@ -428,6 +457,7 @@ body.theme-graphite .capture-area .muted{
     <div class="compact-card">
       <div class="form-row"><label>種類</label><select id="renameAccountCategory"></select></div>
       <div class="form-row"><label>科目名</label><input id="renameAccountName"></div>
+      <div class="form-row hidden" id="renameLiabilityMemoRow"><label>負債メモ</label><textarea id="renameLiabilityMemo" placeholder="例：スマホ端末代・残り14回 / 翌月一括支払い予定"></textarea></div>
     </div>
     <div class="notice">仕訳は科目IDで紐付いているため、名前を変更しても過去の仕訳へ自動反映されます。</div>
   </div>
@@ -465,7 +495,7 @@ const defaultAccounts = [
 ["食費","expense"],["消耗品費","expense"],["地代家賃","expense"],["水道光熱費","expense"],["通信費","expense"],["趣味費","expense"],["交際費","expense"],["福利厚生費","expense"],["宗教・寄付","expense"],["減価償却費","expense"],["交通費","expense"],["保険料","expense"],["利子","expense"],["医療費","expense"],["教育費","expense"],["レジャー費","expense"],["税金","expense"],["その他費用","expense"],
 ["債務免除益","specialGain"],["金融商品評価益","specialGain"],["金融商品売却益","specialGain"],["その他特別利益","specialGain"],["不動産売却益","specialGain"],["不動産評価益","specialGain"],
 ["債務免除損","specialLoss"],["金融商品評価損","specialLoss"],["金融商品売却損","specialLoss"],["不動産売却損","specialLoss"],["不動産評価損","specialLoss"],["除却損","specialLoss"],["災害損失","specialLoss"],["解約損失","specialLoss"],["減損損失","specialLoss"],["その他特別損失","specialLoss"]
-].map((x,i)=>({id:"acc_"+(i+1),name:x[0],category:x[1],subs:[]}));
+].map((x,i)=>({id:"acc_"+(i+1),name:x[0],category:x[1],subs:[],memo:""}));
 
 let accounts = JSON.parse(localStorage.getItem("ml_v02_accounts")||"null") || clone(defaultAccounts);
 let entries = JSON.parse(localStorage.getItem("ml_v02_entries")||"[]");
@@ -498,13 +528,37 @@ function persist(){
   localStorage.setItem("ml_v02_accounts",JSON.stringify(accounts));
   localStorage.setItem("ml_v02_entries",JSON.stringify(entries));
 }
+function escapeHTML(value){
+  return String(value??"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
 function catName(id){return categories.find(c=>c.id===id)?.name||id}
 function accountById(id){return accounts.find(a=>a.id===id)}
+function localISODate(d=new Date()){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 function monthBounds(d=new Date()){
   const y=d.getFullYear(),m=d.getMonth();
   const first=new Date(y,m,1),last=new Date(y,m+1,0);
-  const f=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;
-  return [f(first),f(last)];
+  return [localISODate(first),localISODate(last)];
+}
+function formatTodayJP(d=new Date()){
+  const w=["日","月","火","水","木","金","土"][d.getDay()];
+  return `今日：${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${w}）`;
+}
+let registerLastKnownDay="";
+function syncRegisterToday(force=false){
+  const now=new Date();
+  const today=localISODate(now);
+  if($("todayBanner")) $("todayBanner").textContent=formatTodayJP(now);
+  if(force || !registerLastKnownDay || registerLastKnownDay!==today || !$("date").value){
+    $("date").value=today;
+  }
+  registerLastKnownDay=today;
 }
 function jpDateRange(a,b){return `${a.replaceAll("-","/")} 〜 ${b.replaceAll("-","/")}`}
 function show(id){
@@ -512,6 +566,7 @@ function show(id){
   $(id).classList.add("active");
   $("title").textContent={register:"仕訳登録",list:"仕訳一覧",pl:"損益計算書",bs:"バランスシート",settings:"設定",accountCategories:"勘定科目の種類",accounts:catName(selectedAccountCategory),accountReport:"補助勘定科目",export:"データ書き出し"}[id];
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===id));
+  if(id==="register") syncRegisterToday(false);
   renderAll();
 }
 function toast(msg){
@@ -662,7 +717,10 @@ function drawNonZero(targetId,cat,b,source){
   const rows=accounts.filter(a=>a.category===cat).map(a=>({a,v:b[a.id]||0})).filter(x=>x.v!==0);
   $(targetId).innerHTML=rows.length?rows.map(x=>`
     <div class="row taprow" onclick="showAccountReport('${x.a.id}','${source}')">
-      <span>${x.a.name}<span class="rowchev">›</span></span>
+      <span>
+        ${escapeHTML(x.a.name)}<span class="rowchev">›</span>
+        ${cat==="liability"&&x.a.memo?`<span class="account-note">${escapeHTML(x.a.memo)}</span>`:""}
+      </span>
       <b>¥${x.v.toLocaleString()}</b>
     </div>`).join(""):'<div class="muted">該当なし</div>';
 }
@@ -853,7 +911,7 @@ function renderAccountList(){
         <div class="handle" data-handle="${a.id}" aria-label="長押しで並べ替え">☰</div>
         <div class="account-main" onclick="if(closeSwipeForElement(this)) return; openSubModal('${a.id}')">
           <b>${a.name}</b>
-          <small>補助勘定科目 ${a.subs.length}件</small>
+          <small>補助勘定科目 ${a.subs.length}件</small>${a.category==="liability"&&a.memo?`<span class="account-note">${escapeHTML(a.memo)}</span>`:""}
         </div>
         <button class="icon-btn" aria-label="勘定科目名を変更" title="名前を変更" onclick="event.stopPropagation();if(closeSwipeForElement(this)) return; openAccountRename('${a.id}')">✏️</button>
         <div class="chev" onclick="if(closeSwipeForElement(this)) return; openSubModal('${a.id}')">›</div>
@@ -866,7 +924,7 @@ function openAddAccount(){
 }
 function saveNewAccount(){
   const name=$("addAccountName").value.trim();if(!name){alert("勘定科目名を入力してください");return}
-  accounts.push({id:"acc_"+Date.now()+"_"+Math.random().toString(16).slice(2),name,category:selectedAccountCategory,subs:[]});
+  accounts.push({id:"acc_"+Date.now()+"_"+Math.random().toString(16).slice(2),name,category:selectedAccountCategory,subs:[],memo:""});
   persist();closeModal("addAccountModal");renderAll();toast("勘定科目を追加しました");
 }
 function removeAccount(id){
@@ -1043,7 +1101,11 @@ function saveDisplayedOrder(){
     const after=accounts.slice(insertIndex).filter(a=>a.category!==selectedAccountCategory);
     accounts=[...before,...ordered,...after];
   }
-  persist();refreshFilters();renderReports();
+  persist();
+  refreshFilters();
+  // 設定画面で確定した並び順を、仕訳登録・仕訳修正の選択肢へ即時反映
+  refreshSide("debit");refreshSide("credit");refreshSide("editDebit");refreshSide("editCredit");
+  renderReports();
 }
 
 function saveSubOrder(){
@@ -1058,14 +1120,22 @@ function openAccountRename(id){
   $("renameAccountCategory").innerHTML=categoryOptions(false);
   $("renameAccountCategory").value=a.category;
   $("renameAccountName").value=a.name;
+  $("renameLiabilityMemo").value=a.memo||"";
+  updateLiabilityMemoVisibility();
   $("renameAccountModal").classList.add("show");
   setTimeout(()=>$("renameAccountName").focus(),150);
+}
+function updateLiabilityMemoVisibility(){
+  const isLiability=$("renameAccountCategory").value==="liability";
+  $("renameLiabilityMemoRow").classList.toggle("hidden",!isLiability);
 }
 function saveAccountRename(){
   const a=accountById(renamingAccountId);if(!a)return;
   const name=$("renameAccountName").value.trim();if(!name){alert("科目名を入力してください");return}
-  a.name=name;a.category=$("renameAccountCategory").value;
-  persist();closeModal("renameAccountModal");renderAll();toast("勘定科目名を変更しました");
+  a.name=name;
+  a.category=$("renameAccountCategory").value;
+  if(a.category==="liability") a.memo=$("renameLiabilityMemo").value.trim();
+  persist();closeModal("renameAccountModal");renderAll();toast("勘定科目を更新しました");
 }
 function openSubRename(sid){
   const a=accountById(subEditingAccountId),s=a?.subs.find(x=>x.id===sid);if(!s)return;
@@ -1274,6 +1344,7 @@ function renderAll(){
 }
 
 ["debitCategory","creditCategory","editDebitCategory","editCreditCategory"].forEach(id=>$(id).addEventListener("change",()=>refreshSide(id.replace("Category",""))));
+$("renameAccountCategory").addEventListener("change",updateLiabilityMemoVisibility);
 ["debitAccount","creditAccount","editDebitAccount","editCreditAccount"].forEach(id=>$(id).addEventListener("change",()=>refreshSub(id.replace("Account",""))));
 
 const lastValidDates={};
@@ -1295,6 +1366,19 @@ function keepDateNonEmpty(id,callback){
 
 /* 日付リスナーは初期値設定後に keepDateNonEmpty で登録 */
 
+/* 金額は数字のみ。iPhoneでは inputmode=numeric によりテンキーを優先 */
+$("amount").addEventListener("input",()=>{
+  const digits=$("amount").value.replace(/\D/g,"");
+  if($("amount").value!==digits) $("amount").value=digits;
+});
+
+/* 日を跨いだ場合、次にアプリへ戻った時点で仕訳日付を今日へ更新 */
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden) syncRegisterToday(false);
+});
+window.addEventListener("pageshow",()=>syncRegisterToday(false));
+window.addEventListener("focus",()=>syncRegisterToday(false));
+
 $("excelImport").addEventListener("change",async e=>{
   const file=e.target.files?.[0];if(!file)return;
   try{
@@ -1310,7 +1394,7 @@ $("excelImport").addEventListener("change",async e=>{
 
 $("exportBaseName").value=`${new Date().getFullYear()}年${new Date().getMonth()+1}月_仕訳帳`;
 const [mf,mt]=monthBounds();
-$("date").value=new Date().toISOString().slice(0,10);
+syncRegisterToday(true);
 ["from","plFrom"].forEach(id=>$(id).value=mf);
 ["to","plTo"].forEach(id=>$(id).value=mt);
 $("bsTo").value=mt;
