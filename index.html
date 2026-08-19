@@ -360,6 +360,19 @@ body.theme-graphite .capture-area .account-note{
 body.theme-graphite .trend-bar{background:#5aa7ff}
 @media(max-width:420px){.trend-chart{gap:4px;height:235px}.trend-value{font-size:8px}.trend-month{font-size:9px}}
 
+/* v2.6 Guide & Security */
+.guide-shortcut{display:flex;justify-content:flex-end;padding:4px 12px 0}.guide-shortcut button{font-size:12px}
+.settings-group-title{padding:9px 16px 6px;background:var(--soft);color:var(--muted);font-size:12px;font-weight:800;border-bottom:1px solid var(--line)}
+.guide-copy{font-size:14px;line-height:1.7}.guide-copy p{margin:8px 0}.guide-list{margin:8px 0;padding-left:1.4em;line-height:1.7}.guide-list li{margin:3px 0}
+.guide-accordion{padding:10px 12px}.guide-accordion details{margin:0 0 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.guide-accordion summary{position:relative;list-style:none;cursor:pointer;padding:15px 42px 15px 14px;font-size:15px;font-weight:800;color:var(--text)}
+.guide-accordion summary::-webkit-details-marker{display:none}.guide-accordion summary::after{content:"＋";position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:20px;font-weight:400}.guide-accordion details[open] summary::after{content:"−"}.guide-accordion details[open] summary{border-bottom:1px solid var(--line)}
+.guide-body{padding:12px 14px 15px;color:var(--text);font-size:14px;line-height:1.7}.guide-body p{margin:7px 0 11px}.guide-body h4{font-size:14px;margin:18px 0 5px}
+.journal-example{width:100%;max-width:100%;margin:10px 0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft);overflow-wrap:anywhere;word-break:break-word}.journal-example b{display:block;margin-bottom:6px}.journal-example div{margin:3px 0}
+.guide-tip{margin:7px 0 0!important;padding-top:7px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted)}
+body.theme-graphite .settings-group-title{background:#292b30;color:#c8c9ce}body.theme-graphite .guide-accordion details,body.theme-graphite .journal-example{background:var(--card);color:var(--text)}body.theme-graphite .guide-body,body.theme-graphite .guide-copy{color:var(--text)}
+@media(max-width:420px){.guide-accordion{padding:8px}.guide-accordion summary{font-size:14px;padding:14px 40px 14px 12px}.guide-body{font-size:13px;padding:11px 12px 14px}}
+
 </style>
 </head>
 <body>
@@ -368,6 +381,7 @@ body.theme-graphite .trend-bar{background:#5aa7ff}
 
 <section id="register" class="screen active">
   <div class="today-banner" id="todayBanner" aria-live="polite"></div>
+  <div class="guide-shortcut"><button class="secondary small" type="button" onclick="show('guide')">？ 仕訳例・使い方を見る</button></div>
   <div class="compact-card">
     <div class="form-row"><label>日付</label><input id="date" type="date"></div>
     <div class="form-row"><label>金額</label><input id="amount" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" autocomplete="off" maxlength="12" placeholder="金額"></div>
@@ -508,72 +522,96 @@ body.theme-graphite .trend-bar{background:#5aa7ff}
   <div class="privacy-card">
     <h3>ホーム画面から使う</h3>
     <p>Safariでこのページを開き、共有ボタン →「ホーム画面に追加」→「Webアプリとして開く」を選ぶと、MasterLedgerのアイコンから起動できます。</p>
-    <div class="privacy-status">仕訳データはこの端末内に保存されます。バックアップはExcel / CSVで行えます。</div>
+    <div class="privacy-status">帳簿データはブラウザの端末内保存領域を利用します。大切なデータはCSV / Excelでもバックアップしてください。</div>
   </div>
   <div class="settings-row">
     <div><div class="name">背景</div><div class="meta">見やすい外観を選べます</div></div>
     <select id="themeSelect" style="width:auto;min-width:135px">
-      <option value="paper">アイボリー</option>
-      <option value="mist">ミスト</option>
-      <option value="sage">セージ</option>
-      <option value="graphite">グラファイト</option>
+      <option value="paper">アイボリー</option><option value="mist">ミスト</option><option value="sage">セージ</option><option value="graphite">グラファイト</option>
     </select>
   </div>
-  <div class="help-note">勘定科目の管理、仕訳データの読み込み・書き出し、背景の変更ができます。ExcelやCSVから仕訳を読み込むと、必要な勘定科目・補助勘定科目も自動で追加されます。</div>
-  <div class="settings-row" onclick="show('accountCategories')">
-    <div><div class="name">勘定科目・補助勘定科目</div><div class="meta">種類を選んで編集</div></div><span>›</span>
-  </div>
-  
-  <div class="settings-row" onclick="document.getElementById('excelImport').click()">
-    <div><div class="name">Excel仕訳帳を読み込む</div><div class="meta">仕訳・勘定科目・補助勘定科目を自動追加</div></div><span>›</span>
-  </div>
-  <input id="excelImport" type="file" accept=".xlsx,.xls,.csv,text/csv" class="hidden">
-  <div id="importResult" class="notice hidden"></div>
-  <div class="settings-row" onclick="show('export')"><div><div class="name">仕訳データを書き出す</div><div class="meta">Excel / CSV</div></div><span>›</span></div>
-  <div class="settings-row" onclick="openAnnualReport()">
-    <div><div class="name">年間決算書を作成</div><div class="meta">1月〜12月のP/L・B/Sを総振り返り</div></div><span>›</span>
-  </div>
-  <div class="settings-row" onclick="openAnnualTrend()">
-    <div><div class="name">年次月別推移</div><div class="meta">勘定科目を選んで1〜12月の推移を見る</div></div><span>›</span>
-  </div>
-  <div class="settings-row" onclick="show('about')">
-    <div><div class="name">MasterLedgerについて</div><div class="meta">オフライン・データ保存・バージョン情報</div></div><span>›</span>
-  </div>
-  <div class="settings-row" onclick="resetAccounts()"><div class="name">勘定科目を初期状態へ戻す</div><span>›</span></div>
-  <div class="settings-row" onclick="clearEntries()"><div class="name danger">仕訳を全削除</div><span>›</span></div>
+  <div class="settings-group-title">レポート・分析</div>
+  <div class="settings-row" onclick="openAnnualTrend()"><div><div class="name">年次月別推移</div><div class="meta">勘定科目を選んで1〜12月の推移を見る</div></div><span>›</span></div>
+  <div class="settings-row" onclick="openAnnualReport()"><div><div class="name">年間決算書を作成</div><div class="meta">1月〜12月のP/L・B/Sを総振り返り</div></div><span>›</span></div>
+  <div class="settings-group-title">管理・ヘルプ</div>
+  <div class="settings-row" onclick="show('dataManagement')"><div><div class="name">データ管理</div><div class="meta">科目・CSV / Excel・バックアップ</div></div><span>›</span></div>
+  <div class="settings-row" onclick="show('guide')"><div><div class="name">使い方・仕訳ガイド</div><div class="meta">複式簿記の基本と記帳例</div></div><span>›</span></div>
+  <div class="settings-row" onclick="show('about')"><div><div class="name">MasterLedgerについて</div><div class="meta">機能・設計・セキュリティ・バージョン</div></div><span>›</span></div>
 </section>
 
 
 <section id="about" class="screen">
-  <div class="toolbar"><button class="secondary" onclick="show('settings')">‹ 設定</button></div>
+  <div class="toolbar"><button class="secondary" type="button" onclick="show('settings')">‹ 設定へ戻る</button></div>
   <div class="section">MasterLedgerについて</div>
-
   <div class="privacy-card">
-    <h3>MasterLedger v2.5 Annual Monthly Trend</h3>
-    <p>複式簿記による個人向け帳簿アプリです。</p>
+    <h3>MasterLedger v2.6 Guide &amp; Security</h3>
+    <p>複式簿記を利用して、収入・支出だけでなく、現金・預金・資産・負債まで管理できる個人向け帳簿アプリです。</p>
   </div>
-
-  <div class="report-card">
-    <h3>オフライン対応</h3>
-    <p>初回の読み込みと必要なライブラリの取得が完了した後は、インターネット接続がない環境でも主要機能を利用できます。</p>
+  <div class="report-card guide-copy">
+    <h3>主な機能</h3>
+    <ul class="guide-list"><li>仕訳登録と仕訳一覧</li><li>勘定科目・補助勘定科目の管理</li><li>損益計算書（P/L）</li><li>貸借対照表（B/S）</li><li>CSV・Excelの入出力</li><li>年間決算書とPDF出力</li><li>年次月別推移</li><li>オフライン利用</li><li>ブラウザの端末内保存領域へのデータ保存</li></ul>
   </div>
-
-  <div class="report-card">
-    <h3>データ保存</h3>
-    <p>仕訳・勘定科目・補助勘定科目などの帳簿データは、この端末のブラウザ保存領域に保存されます。通常のアプリ更新では帳簿データを削除しない設計です。</p>
+  <div class="report-card guide-copy">
+    <h3>設計・開発の概要</h3>
+    <ol class="guide-list"><li>必要な機能を整理</li><li>仕訳・勘定科目・画面を設計</li><li>初期試作</li><li>HTML / CSS / JavaScriptによるPWAへ移行</li><li>端末内保存とオフライン対応</li><li>CSV・Excel連携</li><li>実際の使用を通じた修正</li><li>年間決算書や月別推移を追加</li></ol>
   </div>
-
-  <div class="report-card">
-    <h3>バックアップ</h3>
-    <p>SafariのWebサイトデータ削除、Webアプリのデータ削除、端末の初期化などではデータが失われる可能性があります。大切な帳簿は定期的にExcelまたはCSVへ書き出してください。</p>
+  <div class="report-card guide-copy">
+    <h3>セキュリティとデータ保存の概要</h3>
+    <p>現行版は、仕訳・科目をブラウザの端末内保存領域（localStorage）へ保存します。アプリ本体の配信と帳簿データの保存は別です。</p>
+    <p>現行HTMLには、帳簿データをサーバーへ送信するAPI処理は実装していません。一方、アプリ本体の読み込み・更新や外部ライブラリ取得では通信が発生する場合があります。</p>
+    <p>帳簿データをMasterLedger独自方式で暗号化する機能は、現在の実装にはありません。端末の画面ロックとCSV / Excelバックアップの適切な管理を推奨します。</p>
   </div>
-
-  <div class="report-card">
-    <h3>アップデート</h3>
-    <p>アプリ本体と帳簿データの保存領域を分けています。v2.5でも従来の保存キーをそのまま使用しているため、これまでの仕訳・科目・並び順を引き継ぐ設計です。</p>
+  <div class="report-card guide-copy">
+    <h3>今回の更新</h3>
+    <p>「使い方・仕訳ガイド」と「データ管理」ページを追加し、「MasterLedgerについて」の説明を実装に合わせて整理しました。保存キーとデータ形式は変更していません。</p>
   </div>
+  <button class="primary" type="button" onclick="show('guide')">使い方・仕訳ガイドを開く</button>
+  <div class="help-note">MasterLedgerは個人向けの記録・分析支援アプリです。銀行、会計事務所、税務申告サービス、資産保管サービスそのものではありません。</div>
 </section>
 
+
+<section id="dataManagement" class="screen">
+  <div class="toolbar"><button class="secondary" type="button" onclick="show('settings')">‹ 設定へ戻る</button></div>
+  <div class="section">データ管理</div>
+  <div class="help-note">勘定科目の管理、仕訳データの読み込み・書き出し、初期化操作をまとめています。重要な操作の前にはCSVまたはExcelのバックアップを推奨します。</div>
+  <div class="settings-row" onclick="show('accountCategories')"><div><div class="name">勘定科目・補助勘定科目</div><div class="meta">種類を選んで編集・並べ替え</div></div><span>›</span></div>
+  <div class="settings-row" onclick="document.getElementById('excelImport').click()"><div><div class="name">Excel / CSV仕訳帳を読み込む</div><div class="meta">仕訳・科目・補助科目を取り込む</div></div><span>›</span></div>
+  <input id="excelImport" type="file" accept=".xlsx,.xls,.csv,text/csv" class="hidden">
+  <div id="importResult" class="notice hidden"></div>
+  <div class="settings-row" onclick="show('export')"><div><div class="name">仕訳データを書き出す</div><div class="meta">Excel / CSVバックアップ</div></div><span>›</span></div>
+  <div class="settings-row" onclick="resetAccounts()"><div class="name">勘定科目を初期状態へ戻す</div><span>›</span></div>
+  <div class="settings-row" onclick="clearEntries()"><div class="name danger">仕訳を全削除</div><span>›</span></div>
+</section>
+
+<section id="guide" class="screen">
+  <div class="toolbar"><button class="secondary" type="button" onclick="show('settings')">‹ 設定へ戻る</button></div>
+  <div class="section">使い方・仕訳ガイド</div>
+  <div class="privacy-card"><h3>複式簿記が初めてでも大丈夫</h3><p>MasterLedgerでは、一つの取引を「何に使ったか・何を得たか」と「何で支払ったか・どう調達したか」の両面から記録します。</p></div>
+  <div class="guide-accordion">
+    <details open><summary>1．初めて使う人へ</summary><div class="guide-body"><p>一つの取引を二つの面から記録します。たとえば買い物なら、「何を買ったか」と「何で払ったか」をセットで登録します。この二つが対応することで、支出だけでなく現金・預金・負債などの動きも追いやすくなります。</p></div></details>
+    <details><summary>2．複式簿記の基本</summary><div class="guide-body"><p>初心者向けには、次のように考えると入力しやすくなります。</p><ul class="guide-list"><li><b>借方：</b>何に使ったか、何を得たか</li><li><b>貸方：</b>どこから支払ったか、どう調達したか</li></ul><p class="muted">これは日常の入力を始めやすくするための簡易的な考え方です。実際の複式簿記では、資産・負債・純資産・収益・費用ごとに増減のルールがあります。</p><div class="journal-example"><b>例：現金で食材を1,000円購入</b><div>借方：食費　1,000円</div><div>貸方：現金・預金　1,000円</div></div></div></details>
+    <details><summary>3．仕訳登録の手順</summary><div class="guide-body"><ol class="guide-list"><li>日付を選ぶ</li><li>何に使ったかを借方で選ぶ</li><li>何で支払ったかを貸方で選ぶ</li><li>金額を入力する</li><li>摘要（メモ）へ内容を書く</li><li>登録後、仕訳一覧で確認する</li></ol></div></details>
+    <details><summary>4．よく使う仕訳例</summary><div class="guide-body">
+      <div class="journal-example"><b>現金で買い物</b><div>借方：消耗品費　3,000円</div><div>貸方：現金・預金　3,000円</div></div>
+      <div class="journal-example"><b>普通預金から固定費を支払う</b><div>借方：通信費　5,000円</div><div>貸方：現金・預金 / 普通預金　5,000円</div></div>
+      <div class="journal-example"><b>収入が普通預金へ入る</b><div>借方：現金・預金 / 普通預金　100,000円</div><div>貸方：お給料　100,000円</div></div>
+      <div class="journal-example"><b>普通預金から電子マネーへチャージ</b><div>借方：電子マネー　5,000円</div><div>貸方：現金・預金 / 普通預金　5,000円</div><p class="guide-tip">チャージそのものは費用ではなく、資産から資産への移動です。</p></div>
+      <div class="journal-example"><b>後払いで購入</b><div>借方：消耗品費　8,000円</div><div>貸方：未払金　8,000円</div></div>
+      <div class="journal-example"><b>未払金を普通預金から支払う</b><div>借方：未払金　8,000円</div><div>貸方：現金・預金 / 普通預金　8,000円</div><p class="guide-tip">購入時に費用を計上済みなので、支払時にもう一度費用へ入れると二重計上になります。</p></div>
+    </div></details>
+    <details><summary>5．摘要の記帳ルール</summary><div class="guide-body"><p>勘定科目を細かく増やしすぎず、補助勘定科目や摘要の記号・タグを組み合わせると整理しやすくなります。</p><div class="journal-example"><b>固定費の例</b><div>☆家賃</div><div>☆電気料金</div><div>☆通信料金</div></div><div class="journal-example"><b>食費の例</b><div>（食材）</div><div>（外食）</div><div>（中食）</div><div>（備蓄）</div></div><ul class="guide-list"><li><b>勘定科目：</b>会計上の大分類</li><li><b>補助勘定科目：</b>必要に応じた内訳</li><li><b>摘要タグ：</b>生活上の分析分類</li><li><b>摘要本文：</b>具体的な取引内容</li></ul></div></details>
+    <details><summary>6．P/LとB/Sの見方</summary><div class="guide-body"><p><b>P/L（損益計算書）：</b>一定期間の収入と支出を確認する「成績表」のようなものです。</p><p><b>B/S（貸借対照表）：</b>ある時点の資産と負債を確認する「財産状況の写真」のようなものです。</p></div></details>
+    <details><summary>7．月末の確認</summary><div class="guide-body"><ul class="guide-list"><li>現金残高</li><li>普通預金残高</li><li>電子マネー残高</li><li>未払金残高</li><li>記帳漏れ</li><li>二重計上</li><li>固定費の未登録</li></ul></div></details>
+    <details><summary>8．データの入出力</summary><div class="guide-body"><p>「データ管理」からCSV・Excelの読み込みと書き出しができます。機種変更、ブラウザデータの消去、端末故障などに備え、定期的なバックアップを推奨します。</p><p>CSV・Excelの書き出しファイルには帳簿情報が含まれます。保存場所、共有先、削除方法にも注意してください。</p><button class="secondary" type="button" onclick="show('dataManagement')">データ管理を開く</button></div></details>
+    <details><summary>9．セキュリティとプライバシー</summary><div class="guide-body">
+      <h4>オフライン利用</h4><p>MasterLedgerはPWAとして、HTML・manifest・アイコンなどのアプリ本体をService Workerのキャッシュへ保存する仕組みを持っています。初回読み込みや更新時には通信が必要です。</p><p>画像保存用のhtml2canvasと、Excel処理用のSheetJSは外部CDNから取得し、取得できた場合はService Workerでもキャッシュします。そのため、これらを含むオフライン利用には、一度オンラインで必要ファイルを正常に取得していることが前提になります。</p><p>キャッシュが利用できる状態では、通信できない環境でも主要画面や帳簿処理を利用できます。ただしブラウザやOSがキャッシュを消去した場合などは、再取得が必要になることがあります。</p>
+      <h4>データ保存</h4><p>現行版では、仕訳・勘定科目・補助勘定科目をブラウザの端末内保存領域（localStorage）へJSON形式で保存します。アプリ本体をGitHub Pages等から配信することと、帳簿データを保存することは別の仕組みです。</p><p>現行HTMLには、帳簿データをAPIや解析サービスへ送信する処理は実装していません。ただし、アプリ本体や外部ライブラリの読み込み・更新ではネットワーク通信が発生します。</p><p>MasterLedger独自の帳簿データ暗号化は現在実装していません。「完全に安全」「一切通信しない」といった性質のアプリではありません。</p>
+      <h4>注意事項</h4><ul class="guide-list"><li>端末の紛失や、ロック解除後の第三者操作に注意してください。</li><li>端末の画面ロック・端末認証を有効にしてください。</li><li>ブラウザのサイトデータを削除すると帳簿が消える可能性があります。</li><li>プライベートブラウズでは保存が維持されない可能性があります。</li><li>機種変更時にブラウザ保存データが自動移行されない可能性があります。</li><li>CSV・Excelファイル自体に帳簿情報が含まれます。</li><li>バックアップの保存場所や共有先に注意してください。</li><li>共用端末での利用は避けてください。</li></ul>
+      <h4>推奨する安全な使い方</h4><ul class="guide-list"><li>端末の画面ロックを有効にする</li><li>OSとブラウザを更新する</li><li>共用端末では使用しない</li><li>定期的にCSVまたはExcelへバックアップする</li><li>バックアップを不用意にメールやSNSへ添付しない</li><li>不要になった書き出しファイルを適切に管理する</li><li>MasterLedgerの更新前にバックアップを作成する</li></ul>
+    </div></details>
+  </div>
+  <div class="help-note">このガイドは基本的な記帳を始めるための案内です。税務・会計上の判断が必要な場合は、必要に応じて専門家や公的な案内を確認してください。</div>
+</section>
 
 <section id="annualReport" class="screen">
   <div class="toolbar no-print"><button class="secondary" onclick="show('settings')">‹ 設定</button></div>
@@ -780,7 +818,7 @@ function jpDateRange(a,b){return `${a.replaceAll("-","/")} 〜 ${b.replaceAll("-
 function show(id){
   document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
   $(id).classList.add("active");
-  $("title").textContent={register:"仕訳登録",list:"仕訳一覧",pl:"損益計算書",bs:"バランスシート",settings:"設定",accountCategories:"勘定科目の種類",accounts:catName(selectedAccountCategory),accountReport:"補助勘定科目",export:"データ書き出し",annualReport:"年間決算書",annualTrend:"年次月別推移"}[id];
+  $("title").textContent={register:"仕訳登録",list:"仕訳一覧",pl:"損益計算書",bs:"バランスシート",settings:"設定",accountCategories:"勘定科目の種類",accounts:catName(selectedAccountCategory),accountReport:"補助勘定科目",export:"データ書き出し",annualReport:"年間決算書",annualTrend:"年次月別推移",dataManagement:"データ管理",guide:"使い方・仕訳ガイド",about:"MasterLedgerについて"}[id];
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===id));
   if(id==="register") syncRegisterToday(false);
   renderAll();

@@ -1,8 +1,8 @@
 {
   "name": "複式簿記帳簿「MasterLedger」",
   "short_name": "MasterLedger",
-  "description": "端末内保存と暗号化バックアップに対応した個人用複式簿記帳簿",
-  "start_url": "./index.html?v=2.5",
+  "description": "端末内保存・オフライン利用・CSV/Excel入出力に対応した個人向け複式簿記帳簿",
+  "start_url": "./index.html?v=2.6",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f0e7",
