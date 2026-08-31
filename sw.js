@@ -1,4 +1,4 @@
-const CACHE="masterledger-offline-v2-7-2-cashflow-details";
+const CACHE="masterledger-offline-v2-7-3-cf-clean-layout";
 const LOCAL_SHELL=[
   "./",
   "./index.html",
