@@ -1,21 +1,36 @@
-const CACHE="masterledger-offline-v2-6-guide-security";
+const CACHE="masterledger-offline-v2-7-asset-cashflow";
 const LOCAL_SHELL=[
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icon.png",
-  "./apple-touch-icon.png"
+  "./apple-touch-icon.png",
+  "./v27-asset-cashflow.js"
 ];
 const EXTERNAL_LIBS=[
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
   "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
 ];
 
+async function withV27(res){
+  if(!res)return res;
+  const type=res.headers.get("content-type")||"";
+  if(!type.includes("text/html"))return res;
+  try{
+    let html=await res.clone().text();
+    if(!html.includes("v27-asset-cashflow.js")){
+      html=html.replace("</body>",'<script src="./v27-asset-cashflow.js"></script>\n</body>');
+    }
+    const headers=new Headers(res.headers);
+    headers.delete("content-length");
+    return new Response(html,{status:res.status,statusText:res.statusText,headers});
+  }catch(_){return res;}
+}
+
 self.addEventListener("install",event=>{
   event.waitUntil((async()=>{
     const cache=await caches.open(CACHE);
     await cache.addAll(LOCAL_SHELL);
-    // CDN取得に失敗してもアプリ本体のインストールは失敗させない。
     await Promise.allSettled(EXTERNAL_LIBS.map(async url=>{
       const res=await fetch(url,{mode:"cors"});
       if(res.ok) await cache.put(url,res.clone());
@@ -39,7 +54,6 @@ self.addEventListener("fetch",event=>{
   const isNavigation=event.request.mode==="navigate";
   const isExternalLib=EXTERNAL_LIBS.includes(event.request.url);
 
-  // ライブラリは端末キャッシュ優先。初回取得後はオフラインで利用可能。
   if(isExternalLib){
     event.respondWith((async()=>{
       const cached=await caches.match(event.request);
@@ -58,7 +72,6 @@ self.addEventListener("fetch",event=>{
     return;
   }
 
-  // HTML起動はオンライン時に最新版確認、オフライン時は保存版。
   if(isNavigation){
     event.respondWith((async()=>{
       try{
@@ -67,15 +80,15 @@ self.addEventListener("fetch",event=>{
           const cache=await caches.open(CACHE);
           await cache.put("./index.html",res.clone());
         }
-        return res;
+        return await withV27(res);
       }catch(_){
-        return (await caches.match("./index.html")) || (await caches.match("./"));
+        const cached=(await caches.match("./index.html")) || (await caches.match("./"));
+        return await withV27(cached);
       }
     })());
     return;
   }
 
-  // 自サイトの静的資産はキャッシュ優先。
   if(sameOrigin){
     event.respondWith((async()=>{
       const cached=await caches.match(event.request);
