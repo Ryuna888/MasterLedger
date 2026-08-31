@@ -1,4 +1,4 @@
-const CACHE="masterledger-offline-v2-7-4-about-live-cf";
+const CACHE="masterledger-offline-v2-7-5-live-cf-renderreports";
 const LOCAL_SHELL=[
   "./",
   "./index.html",
