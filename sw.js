@@ -1,4 +1,4 @@
-const CACHE="masterledger-offline-v2-7-1-cashflow-reclass";
+const CACHE="masterledger-offline-v2-7-2-cashflow-details";
 const LOCAL_SHELL=[
   "./",
   "./index.html",
@@ -6,7 +6,8 @@ const LOCAL_SHELL=[
   "./icon.png",
   "./apple-touch-icon.png",
   "./v27-asset-cashflow.js",
-  "./v27-cashflow-reclass-fix.js"
+  "./v27-cashflow-reclass-fix.js",
+  "./v27-cashflow-details.js"
 ];
 const EXTERNAL_LIBS=[
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
@@ -24,6 +25,9 @@ async function withV27(res){
     }
     if(!html.includes("v27-cashflow-reclass-fix.js")){
       html=html.replace("</body>",'<script src="./v27-cashflow-reclass-fix.js"></script>\n</body>');
+    }
+    if(!html.includes("v27-cashflow-details.js")){
+      html=html.replace("</body>",'<script src="./v27-cashflow-details.js"></script>\n</body>');
     }
     const headers=new Headers(res.headers);
     headers.delete("content-length");
