@@ -1,4 +1,4 @@
-const CACHE="masterledger-offline-v2-7-3-cf-clean-layout";
+const CACHE="masterledger-offline-v2-7-4-about-live-cf";
 const LOCAL_SHELL=[
   "./",
   "./index.html",
@@ -7,7 +7,8 @@ const LOCAL_SHELL=[
   "./apple-touch-icon.png",
   "./v27-asset-cashflow.js",
   "./v27-cashflow-reclass-fix.js",
-  "./v27-cashflow-details.js"
+  "./v27-cashflow-details.js",
+  "./v27-polish.js"
 ];
 const EXTERNAL_LIBS=[
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
@@ -28,6 +29,9 @@ async function withV27(res){
     }
     if(!html.includes("v27-cashflow-details.js")){
       html=html.replace("</body>",'<script src="./v27-cashflow-details.js"></script>\n</body>');
+    }
+    if(!html.includes("v27-polish.js")){
+      html=html.replace("</body>",'<script src="./v27-polish.js"></script>\n</body>');
     }
     const headers=new Headers(res.headers);
     headers.delete("content-length");
@@ -100,7 +104,7 @@ self.addEventListener("fetch",event=>{
   if(sameOrigin){
     event.respondWith((async()=>{
       const cached=await caches.match(event.request);
-      if(cached) return cached;
+      if(cached)return cached;
       const res=await fetch(event.request);
       if(res.ok){
         const cache=await caches.open(CACHE);
