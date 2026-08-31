@@ -28,23 +28,21 @@ function updateAboutV27(){
 }
 
 function refreshCashFlowNow(){
-  if(typeof renderSimplePL==="function"){
-    renderSimplePL();
-    return;
-  }
-  if(typeof renderExplainablePL==="function"){
-    renderExplainablePL();
-  }
+  if(typeof renderReports==="function")renderReports();
 }
 
 function bindLiveCashFlow(){
   ["plFrom","plTo"].forEach(id=>{
     const el=document.getElementById(id);
-    if(!el||el.dataset.cfLiveBound)return;
-    const refresh=()=>requestAnimationFrame(refreshCashFlowNow);
+    if(!el||el.dataset.cfLiveBoundV2)return;
+    let raf=0;
+    const refresh=()=>{
+      cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(refreshCashFlowNow);
+    };
     el.addEventListener("input",refresh);
     el.addEventListener("change",refresh);
-    el.dataset.cfLiveBound="1";
+    el.dataset.cfLiveBoundV2="1";
   });
 }
 
