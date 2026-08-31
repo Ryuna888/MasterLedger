@@ -96,14 +96,16 @@ function injectCFDetailStyles(){
     .cf-breakdown summary::-webkit-details-marker{display:none}.cf-breakdown summary span:after{content:"  ›";color:var(--muted);font-weight:400}.cf-breakdown[open] summary span:after{content:"  ⌄"}
     .cf-detail-box{padding:0 0 8px 10px}.cf-detail-line{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line);font-size:11px;line-height:1.35}.cf-detail-line strong{white-space:nowrap}.cf-detail-memo{color:var(--muted);margin-top:2px}.cf-empty{padding:5px 0;color:var(--muted);font-size:11px}.cf-minus{color:#c62828}
     .cf-reconcile{margin-top:10px;padding:8px 10px;border-radius:9px;background:var(--soft);font-size:11px;line-height:1.55;color:var(--muted)}
-    .annual-cf-compact{margin-top:3mm}.annual-cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}.annual-cf-cell{display:flex;justify-content:space-between;gap:7px;border-bottom:1px solid var(--line);padding:3px 0;font-size:10px}.annual-cf-cell b{white-space:nowrap}
+    .annual-cf-compact{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}.annual-cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}.annual-cf-cell{display:flex;justify-content:space-between;gap:7px;border-bottom:1px solid var(--line);padding:3px 0;font-size:10px}.annual-cf-cell b{white-space:nowrap}
     @media print{
-      .annual-cf-compact{margin-top:1.2mm!important}
-      .annual-cf-compact h3{font-size:7.4pt!important;margin:1mm 0 .4mm!important}
-      .annual-cf-grid{grid-template-columns:1fr 1fr!important;gap:.25mm 3mm!important}
-      .annual-cf-cell{font-size:5.6pt!important;line-height:1!important;padding:.35mm 0!important;border-bottom:.3pt solid #bbb!important}
-      .annual-cf-cell b{font-size:5.6pt!important}
       .annual-month .annual-cashflow{display:none!important}
+      .annual-month .annual-cols{height:157mm!important}
+      .annual-cf-compact{margin:1.5mm 0 0!important;padding-top:.8mm!important;border-top:.7pt solid #222!important}
+      .annual-cf-compact h3{font-size:7pt!important;margin:0 0 .6mm!important}
+      .annual-cf-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:.4mm 1.2mm!important}
+      .annual-cf-cell{display:block!important;text-align:center!important;font-size:5.2pt!important;line-height:1.05!important;padding:.35mm .2mm!important;border:.3pt solid #bbb!important;border-radius:1mm!important;white-space:nowrap!important;overflow:hidden!important}
+      .annual-cf-cell span{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important}
+      .annual-cf-cell b{display:block!important;margin-top:.25mm!important;font-size:5.4pt!important;white-space:nowrap!important}
     }
   `;document.head.appendChild(s);
 }
@@ -157,9 +159,9 @@ function renderExplainableAnnual(){
   document.querySelectorAll("#annualCapture .annual-month").forEach((page,i)=>{
     const m=i+1,from=`${y}-${String(m).padStart(2,"0")}-01`,to=annualMonthEnd(y,m);
     const cf=explainableCashFlow(periodEntries(from,to));
-    const box=page.querySelector(".annual-box:first-child");if(!box)return;
-    let compact=box.querySelector(".annual-cf-compact");
-    if(!compact){compact=document.createElement("div");compact.className="annual-cf-compact";box.appendChild(compact);}
+    page.querySelector(".annual-cashflow")?.remove();
+    let compact=page.querySelector(":scope > .annual-cf-compact");
+    if(!compact){compact=document.createElement("div");compact.className="annual-cf-compact";page.appendChild(compact);}
     compact.innerHTML=`<h3>簡易キャッシュフロー</h3><div class="annual-cf-grid">${annualCFCells(cf)}</div>`;
   });
 }
