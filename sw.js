@@ -1,4 +1,4 @@
-const CACHE="masterledger-offline-v2-7-5-live-cf-renderreports";
+const CACHE="masterledger-offline-v2-7-6-live-date-source";
 const LOCAL_SHELL=[
   "./",
   "./index.html",
@@ -8,7 +8,8 @@ const LOCAL_SHELL=[
   "./v27-asset-cashflow.js",
   "./v27-cashflow-reclass-fix.js",
   "./v27-cashflow-details.js",
-  "./v27-polish.js"
+  "./v27-polish.js",
+  "./v27-live-date-fix.js"
 ];
 const EXTERNAL_LIBS=[
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
@@ -32,6 +33,9 @@ async function withV27(res){
     }
     if(!html.includes("v27-polish.js")){
       html=html.replace("</body>",'<script src="./v27-polish.js"></script>\n</body>');
+    }
+    if(!html.includes("v27-live-date-fix.js")){
+      html=html.replace("</body>",'<script src="./v27-live-date-fix.js"></script>\n</body>');
     }
     const headers=new Headers(res.headers);
     headers.delete("content-length");
