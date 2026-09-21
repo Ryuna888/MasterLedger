@@ -1,4 +1,4 @@
-const CACHE="masterledger-offline-v2-7-6-live-date-source";
+const CACHE="masterledger-offline-v2-7-7-annual-pdf";
 const LOCAL_SHELL=[
   "./",
   "./index.html",
@@ -13,6 +13,7 @@ const LOCAL_SHELL=[
 ];
 const EXTERNAL_LIBS=[
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+  "https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js",
   "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
 ];
 
