@@ -1873,7 +1873,8 @@ async function buildAnnualReportPdf(year){
     const imageHeight=195;
     const imageX=(pageWidth-imageWidth)/2;
     const imageY=(pageHeight-imageHeight)/2;
-    const canvasScale=1.5;
+    // 約120dpi。小さい日本語を読める解像度を保ちつつ、iPhoneのメモリと処理時間を抑える。
+    const canvasScale=1.25;
 
     for(let i=0;i<pages.length;i++){
       annualPdfStatus(`PDFを作成中… ${i+1} / ${pages.length}ページ`);
