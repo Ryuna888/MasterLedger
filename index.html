@@ -1855,11 +1855,14 @@ async function buildAnnualReportPdf(year){
   stage.className="annual-pdf-stage";
   sourcePages.forEach(page=>stage.appendChild(page.cloneNode(true)));
   document.body.appendChild(stage);
+  const sourceCapture=$("annualCapture");
+  const previousSourceDisplay=sourceCapture.style.display;
 
   try{
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const pages=[...stage.children];
     pages.forEach(fitAnnualPdfPage);
+    sourceCapture.style.display="none";
     await new Promise(resolve=>requestAnimationFrame(resolve));
 
     const {jsPDF}=window.jspdf;
@@ -1870,10 +1873,11 @@ async function buildAnnualReportPdf(year){
     const imageHeight=195;
     const imageX=(pageWidth-imageWidth)/2;
     const imageY=(pageHeight-imageHeight)/2;
-    const canvasScale=Math.min(2,Math.max(1.5,window.devicePixelRatio||1));
+    const canvasScale=1.5;
 
     for(let i=0;i<pages.length;i++){
       annualPdfStatus(`PDFを作成中… ${i+1} / ${pages.length}ページ`);
+      pages.forEach((page,index)=>page.style.display=index===i?"block":"none");
       const canvas=await html2canvas(pages[i],{
         backgroundColor:"#ffffff",
         scale:canvasScale,
@@ -1897,6 +1901,7 @@ async function buildAnnualReportPdf(year){
     const filename=`${year}年_MasterLedger_年間決算書.pdf`;
     return new File([pdf.output("arraybuffer")],filename,{type:"application/pdf"});
   }finally{
+    sourceCapture.style.display=previousSourceDisplay;
     stage.remove();
   }
 }
