@@ -13,6 +13,7 @@
 
 <title>複式簿記帳簿「MasterLedger」</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f2f2f7;--card:#fff;--line:#dedee3;--blue:#0a84ff;--text:#111;--muted:#74747a;--danger:#ff3b30;--soft:#f7f7fa}
@@ -348,6 +349,62 @@ body.theme-graphite .capture-area .account-note{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
 
+/* 年間決算書PDF生成用。画面幅に左右されず、印刷時と同じA4横レイアウトで描画する。 */
+.annual-pdf-stage{
+  position:fixed;
+  left:-20000px;
+  top:0;
+  width:287mm;
+  background:#fff;
+  color:#111;
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+  pointer-events:none;
+}
+.annual-pdf-stage .annual-summary-page,
+.annual-pdf-stage .annual-month{
+  box-sizing:border-box;
+  width:287mm;
+  height:195mm;
+  max-height:195mm;
+  margin:0;
+  overflow:hidden;
+  background:#fff;
+  color:#111;
+}
+.annual-pdf-stage .annual-summary-page{padding:7mm 8mm}
+.annual-pdf-stage .annual-summary-page .capture-title{font-size:20pt;margin:0 0 2mm}
+.annual-pdf-stage .annual-summary-page .capture-period{font-size:10pt;margin-bottom:4mm}
+.annual-pdf-stage .annual-summary-page .annual-summary{margin:0 0 5mm;gap:4mm}
+.annual-pdf-stage .annual-summary-page .annual-summary>div{padding:4mm 2mm;font-size:9pt}
+.annual-pdf-stage .annual-summary-page .annual-summary b{font-size:15pt}
+.annual-pdf-stage .annual-summary-page .report-card{margin:0;padding:4mm}
+.annual-pdf-stage .annual-summary-page .row{font-size:8.5pt;padding:1.6mm 0}
+.annual-pdf-stage .annual-month{padding:5mm 6mm;border:0;border-radius:0}
+.annual-pdf-stage .annual-month-title{font-size:16pt;line-height:1;margin:0}
+.annual-pdf-stage .annual-month-period{font-size:8pt;margin:1.4mm 0 3mm;color:#555}
+.annual-pdf-stage .annual-cols{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:6mm;
+  height:151mm;
+  align-items:start;
+}
+.annual-pdf-stage .annual-box{min-width:0}
+.annual-pdf-stage .annual-box h2{font-size:12pt;margin:0 0 2mm;border-bottom:1.5pt solid #222;padding-bottom:1.5mm}
+.annual-pdf-stage .annual-box h3{font-size:8.7pt;margin:2mm 0 .7mm}
+.annual-pdf-stage .annual-minirow{font-size:6.9pt;line-height:1.05;padding:.62mm 0;gap:2mm;border-bottom:.35pt solid #bbb}
+.annual-pdf-stage .annual-minirow.total{border-top:1pt solid #222;margin-top:.7mm;padding-top:.8mm}
+.annual-pdf-stage .annual-month .account-note{font-size:5.5pt;line-height:1;margin-top:.25mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.annual-pdf-stage .annual-month .annual-cashflow{display:none}
+.annual-pdf-stage .annual-cf-compact{margin:1.3mm 0 0;padding-top:.8mm;border-top:.7pt solid #222}
+.annual-pdf-stage .annual-cf-compact h3{font-size:7pt;margin:0 0 .7mm}
+.annual-pdf-stage .annual-cf-columns{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.annual-pdf-stage .annual-cf-col h4{font-size:5.9pt;margin:0 0 .35mm;color:#444}
+.annual-pdf-stage .annual-cf-row{font-size:5.5pt;line-height:1;padding:.35mm 0;border-bottom:.3pt solid #bbb}
+.annual-pdf-stage .annual-cf-row b{font-size:5.5pt}
+.annual-pdf-stage .annual-cf-net{font-size:5.9pt;line-height:1;margin-top:.55mm;padding-top:.5mm;border-top:.7pt solid #222}
+.annual-pdf-fit{transform-origin:top left}
+
 /* v2.5 年次月別推移 */
 .trend-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
 .trend-title{font-size:18px;font-weight:800}.trend-total{font-size:16px;font-weight:800;white-space:nowrap}
@@ -619,8 +676,8 @@ body.theme-graphite .settings-group-title{background:#292b30;color:#c8c9ce}body.
   <div class="report-controls no-print">
     <div class="filter-label">対象年</div>
     <select id="annualYear"></select>
-    <button class="primary" style="width:100%;margin:10px 0 0" onclick="printAnnualReport()">PDFとして保存 / 印刷</button>
-    <div class="help-note" style="margin:10px 0 0">年間サマリー＋各月の損益計算書・バランスシートを作成します。iPhoneでは印刷画面から共有して「ファイルに保存」するとPDFとして残せます。</div>
+    <button id="annualPdfButton" class="primary" style="width:100%;margin:10px 0 0" onclick="saveAnnualReportPdf()">PDFとして保存</button>
+    <div id="annualPdfStatus" class="help-note" style="margin:10px 0 0" aria-live="polite">年間サマリー＋各月の損益計算書・バランスシートを、A4横向き13ページのPDFとして作成します。iPhoneでは共有メニューから「ファイルに保存」を選べます。</div>
   </div>
   <div id="annualCapture" class="annual-wrap"></div>
 </section>
@@ -1510,22 +1567,20 @@ function sanitizedExportBaseName(){
   const fallback=`MasterLedger_仕訳帳_${new Date().toISOString().slice(0,10)}`;
   return (raw||fallback).replace(/[\\\\/:*?"<>|]/g,"_");
 }
-async function offerFile(file){
+async function offerFile(file,{downloadOnShareFailure=true}={}){
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{
       await navigator.share({files:[file],title:file.name});
       toast("共有メニューから「ファイルに保存」を選べます");
-      return;
+      return "shared";
     }catch(err){
-      if(err?.name==="AbortError")return;
+      if(err?.name==="AbortError")return "cancelled";
+      if(!downloadOnShareFailure)return "share-failed";
     }
   }
-  const url=URL.createObjectURL(file);
-  const a=document.createElement("a");
-  a.href=url;
-  a.download=file.name;
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1200);
+  if(!downloadOnShareFailure)return "share-unavailable";
+  downloadFile(file);
+  return "downloaded";
 }
 function ledgerRowsForExport(){
   return entries.map(e=>{
@@ -1655,7 +1710,8 @@ function openAnnualReport(){
   const sel=$("annualYear");
   sel.innerHTML=annualYearOptions().map(y=>`<option value="${y}">${y}年</option>`).join("");
   sel.value=String(new Date().getFullYear());
-  sel.onchange=renderAnnualReport;
+  sel.onchange=()=>{resetAnnualPdfState();renderAnnualReport()};
+  resetAnnualPdfState();
   show("annualReport");
   renderAnnualReport();
 }
@@ -1734,11 +1790,170 @@ function renderAnnualReport(){
 
   $("annualCapture").innerHTML=summary+pages;
 }
-function printAnnualReport(){
+let annualPdfBusy=false;
+let annualPdfReadyFile=null;
+let annualPdfReadyYear=null;
+
+function annualPdfStatus(message){
+  const status=$("annualPdfStatus");
+  if(status)status.textContent=message;
+}
+function setAnnualPdfButton(label,disabled=false){
+  const button=$("annualPdfButton");
+  if(!button)return;
+  button.textContent=label;
+  button.disabled=disabled;
+  button.setAttribute("aria-busy",disabled?"true":"false");
+}
+function resetAnnualPdfState(){
+  annualPdfReadyFile=null;
+  annualPdfReadyYear=null;
+  setAnnualPdfButton("PDFとして保存");
+  annualPdfStatus("年間サマリー＋各月の損益計算書・バランスシートを、A4横向き13ページのPDFとして作成します。iPhoneでは共有メニューから「ファイルに保存」を選べます。");
+}
+function isIOSDevice(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+}
+function downloadFile(file){
+  const url=URL.createObjectURL(file);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=file.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+function fitAnnualPdfPage(page){
+  const style=getComputedStyle(page);
+  const padX=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight);
+  const padY=parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);
+  const availableWidth=page.clientWidth-padX;
+  const availableHeight=page.clientHeight-padY;
+  const contentWidth=Math.max(availableWidth,page.scrollWidth-padX);
+  const contentHeight=Math.max(availableHeight,page.scrollHeight-padY);
+  const scale=Math.min(1,availableWidth/contentWidth,availableHeight/contentHeight);
+  if(scale>=.998)return;
+
+  const fit=document.createElement("div");
+  fit.className="annual-pdf-fit";
+  while(page.firstChild)fit.appendChild(page.firstChild);
+  fit.style.width=`${100/scale}%`;
+  fit.style.transform=`scale(${scale})`;
+  page.appendChild(fit);
+}
+async function buildAnnualReportPdf(year){
+  if(typeof html2canvas==="undefined")throw new Error("画像生成ライブラリを読み込めませんでした");
+  if(!window.jspdf?.jsPDF)throw new Error("PDF生成ライブラリを読み込めませんでした");
+
   renderAnnualReport();
-  const y=Number($("annualYear").value)||new Date().getFullYear();
-  const old=document.title;document.title=`${y}年_MasterLedger_年間決算書`;
-  window.print();setTimeout(()=>document.title=old,1200);
+  if(document.fonts?.ready)await document.fonts.ready;
+  const sourcePages=[...document.querySelectorAll("#annualCapture > .annual-summary-page, #annualCapture > .annual-month")];
+  if(sourcePages.length!==13)throw new Error(`年間決算書のページ数が不正です（${sourcePages.length}ページ）`);
+
+  const stage=document.createElement("div");
+  stage.className="annual-pdf-stage";
+  sourcePages.forEach(page=>stage.appendChild(page.cloneNode(true)));
+  document.body.appendChild(stage);
+
+  try{
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const pages=[...stage.children];
+    pages.forEach(fitAnnualPdfPage);
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
+    const pageWidth=pdf.internal.pageSize.getWidth();
+    const pageHeight=pdf.internal.pageSize.getHeight();
+    const imageWidth=287;
+    const imageHeight=195;
+    const imageX=(pageWidth-imageWidth)/2;
+    const imageY=(pageHeight-imageHeight)/2;
+    const canvasScale=Math.min(2,Math.max(1.5,window.devicePixelRatio||1));
+
+    for(let i=0;i<pages.length;i++){
+      annualPdfStatus(`PDFを作成中… ${i+1} / ${pages.length}ページ`);
+      const canvas=await html2canvas(pages[i],{
+        backgroundColor:"#ffffff",
+        scale:canvasScale,
+        useCORS:true,
+        logging:false,
+        width:pages[i].clientWidth,
+        height:pages[i].clientHeight,
+        windowWidth:pages[i].clientWidth,
+        windowHeight:pages[i].clientHeight,
+        scrollX:0,
+        scrollY:0
+      });
+      if(i>0)pdf.addPage("a4","landscape");
+      pdf.addImage(canvas.toDataURL("image/jpeg",.94),"JPEG",imageX,imageY,imageWidth,imageHeight,undefined,"FAST");
+      canvas.width=1;
+      canvas.height=1;
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+
+    if(pdf.getNumberOfPages()!==13)throw new Error("PDFを13ページで作成できませんでした");
+    const filename=`${year}年_MasterLedger_年間決算書.pdf`;
+    return new File([pdf.output("arraybuffer")],filename,{type:"application/pdf"});
+  }finally{
+    stage.remove();
+  }
+}
+async function saveAnnualReportPdf(){
+  if(annualPdfBusy)return;
+  const year=Number($("annualYear").value)||new Date().getFullYear();
+
+  if(annualPdfReadyFile&&annualPdfReadyYear===year){
+    const delivery=await offerFile(annualPdfReadyFile,{downloadOnShareFailure:false});
+    if(delivery==="shared"){
+      annualPdfStatus("PDFを共有しました。「ファイルに保存」を選ぶと端末へ保存できます。");
+      setAnnualPdfButton("PDFとして保存");
+      annualPdfReadyFile=null;
+      annualPdfReadyYear=null;
+    }else if(delivery==="cancelled"){
+      annualPdfStatus("共有をキャンセルしました。PDFは再生成せず、もう一度共有できます。");
+    }else{
+      downloadFile(annualPdfReadyFile);
+      annualPdfStatus("PDFをダウンロードしました。");
+      setAnnualPdfButton("PDFとして保存");
+      annualPdfReadyFile=null;
+      annualPdfReadyYear=null;
+    }
+    return;
+  }
+
+  annualPdfBusy=true;
+  setAnnualPdfButton("PDFを作成中…",true);
+  annualPdfStatus("PDFを作成中… 0 / 13ページ");
+  try{
+    const file=await buildAnnualReportPdf(year);
+    if(isIOSDevice()){
+      const delivery=await offerFile(file,{downloadOnShareFailure:false});
+      if(delivery==="shared"){
+        annualPdfStatus("PDFを共有しました。「ファイルに保存」を選ぶと端末へ保存できます。");
+        setAnnualPdfButton("PDFとして保存");
+      }else{
+        annualPdfReadyFile=file;
+        annualPdfReadyYear=year;
+        annualPdfStatus("PDFの準備ができました。下のボタンをもう一度タップして共有メニューを開いてください。");
+        setAnnualPdfButton("PDFを共有 / 保存");
+      }
+    }else{
+      downloadFile(file);
+      annualPdfStatus("PDFをダウンロードしました。");
+      setAnnualPdfButton("PDFとして保存");
+    }
+  }catch(err){
+    console.error(err);
+    annualPdfStatus(`PDFを作成できませんでした：${err?.message||"不明なエラー"}`);
+    setAnnualPdfButton("PDFとして保存");
+    alert("PDFを作成できませんでした。通信状態を確認して、もう一度お試しください。");
+  }finally{
+    annualPdfBusy=false;
+    const button=$("annualPdfButton");
+    if(button)button.disabled=false;
+  }
 }
 
 function resetAccounts(){
