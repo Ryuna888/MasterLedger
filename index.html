@@ -1873,30 +1873,43 @@ async function buildAnnualReportPdf(year){
     const imageHeight=195;
     const imageX=(pageWidth-imageWidth)/2;
     const imageY=(pageHeight-imageHeight)/2;
-    // 約120dpi。小さい日本語を読める解像度を保ちつつ、iPhoneのメモリと処理時間を抑える。
-    const canvasScale=1.25;
+    // 13ページを一度だけ描画してから分割し、iPhoneでの処理時間を抑える。
+    // 1.2倍なら全体でもiOSの一般的なCanvas上限（約1,677万px）以内に収まる。
+    annualPdfStatus("PDFを作成中… 帳票を描画しています");
+    const canvasScale=1.2;
+    const fullCanvas=await html2canvas(stage,{
+      backgroundColor:"#ffffff",
+      scale:canvasScale,
+      useCORS:true,
+      logging:false,
+      width:stage.clientWidth,
+      height:stage.scrollHeight,
+      windowWidth:stage.clientWidth,
+      windowHeight:stage.scrollHeight,
+      scrollX:0,
+      scrollY:0
+    });
+    const pageCanvas=document.createElement("canvas");
+    const pageContext=pageCanvas.getContext("2d");
 
     for(let i=0;i<pages.length;i++){
       annualPdfStatus(`PDFを作成中… ${i+1} / ${pages.length}ページ`);
-      pages.forEach((page,index)=>page.style.display=index===i?"block":"none");
-      const canvas=await html2canvas(pages[i],{
-        backgroundColor:"#ffffff",
-        scale:canvasScale,
-        useCORS:true,
-        logging:false,
-        width:pages[i].clientWidth,
-        height:pages[i].clientHeight,
-        windowWidth:pages[i].clientWidth,
-        windowHeight:pages[i].clientHeight,
-        scrollX:0,
-        scrollY:0
-      });
+      const sourceY=Math.round(fullCanvas.height*i/pages.length);
+      const sourceEnd=Math.round(fullCanvas.height*(i+1)/pages.length);
+      const sourceHeight=sourceEnd-sourceY;
+      pageCanvas.width=fullCanvas.width;
+      pageCanvas.height=sourceHeight;
+      pageContext.fillStyle="#ffffff";
+      pageContext.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+      pageContext.drawImage(fullCanvas,0,sourceY,fullCanvas.width,sourceHeight,0,0,pageCanvas.width,pageCanvas.height);
       if(i>0)pdf.addPage("a4","landscape");
-      pdf.addImage(canvas.toDataURL("image/jpeg",.94),"JPEG",imageX,imageY,imageWidth,imageHeight,undefined,"FAST");
-      canvas.width=1;
-      canvas.height=1;
+      pdf.addImage(pageCanvas.toDataURL("image/jpeg",.94),"JPEG",imageX,imageY,imageWidth,imageHeight,undefined,"FAST");
       await new Promise(resolve=>setTimeout(resolve,0));
     }
+    pageCanvas.width=1;
+    pageCanvas.height=1;
+    fullCanvas.width=1;
+    fullCanvas.height=1;
 
     if(pdf.getNumberOfPages()!==13)throw new Error("PDFを13ページで作成できませんでした");
     const filename=`${year}年_MasterLedger_年間決算書.pdf`;
