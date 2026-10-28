@@ -10,11 +10,12 @@
 <meta name="apple-mobile-web-app-title" content="MasterLedger">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=1.7">
 <meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 
 <title>複式簿記帳簿「MasterLedger」</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="./vendor/html2canvas-1.4.1.min.js"></script>
+<script src="./vendor/jspdf-4.2.1.umd.min.js"></script>
+<script src="./vendor/xlsx-0.20.3.full.min.js"></script>
 <style>
 :root{--bg:#f2f2f7;--card:#fff;--line:#dedee3;--blue:#0a84ff;--text:#111;--muted:#74747a;--danger:#ff3b30;--soft:#f7f7fa}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -601,7 +602,7 @@ body.theme-graphite .settings-group-title{background:#292b30;color:#c8c9ce}body.
   <div class="toolbar"><button class="secondary" type="button" onclick="show('settings')">‹ 設定へ戻る</button></div>
   <div class="section">MasterLedgerについて</div>
   <div class="privacy-card">
-    <h3>MasterLedger v2.6 Guide &amp; Security</h3>
+    <h3>MasterLedger v2.7.8 Security Maintenance</h3>
     <p>複式簿記を利用して、収入・支出だけでなく、現金・預金・資産・負債まで管理できる個人向け帳簿アプリです。</p>
   </div>
   <div class="report-card guide-copy">
@@ -620,7 +621,7 @@ body.theme-graphite .settings-group-title{background:#292b30;color:#c8c9ce}body.
   </div>
   <div class="report-card guide-copy">
     <h3>今回の更新</h3>
-    <p>「使い方・仕訳ガイド」と「データ管理」ページを追加し、「MasterLedgerについて」の説明を実装に合わせて整理しました。保存キーとデータ形式は変更していません。</p>
+    <p>v2.7.8（2026年10月29日）：取り込み・表示の安全性、CSV出力、入力検証、更新時のデータ保護を改善。Excelライブラリを更新し、ライブラリを同梱しました。既存の仕訳・科目の保存キーとデータ形式は引き継ぎます。</p>
   </div>
   <button class="primary" type="button" onclick="show('guide')">使い方・仕訳ガイドを開く</button>
   <div class="help-note">MasterLedgerは個人向けの記録・分析支援アプリです。銀行、会計事務所、税務申告サービス、資産保管サービスそのものではありません。</div>
@@ -835,9 +836,22 @@ async function requestPersistentStorage(){
 requestPersistentStorage();
 
 
+let storageReady=false;
 function persist(){
-  localStorage.setItem("ml_v02_accounts",JSON.stringify(accounts));
-  localStorage.setItem("ml_v02_entries",JSON.stringify(entries));
+  if(!storageReady)throw new Error("保存領域を確認中です。しばらくお待ちください");
+  const oldAccounts=localStorage.getItem("ml_v02_accounts");
+  const oldEntries=localStorage.getItem("ml_v02_entries");
+  try{
+    localStorage.setItem("ml_v02_accounts",JSON.stringify(accounts));
+    localStorage.setItem("ml_v02_entries",JSON.stringify(entries));
+  }catch(err){
+    if(oldAccounts===null)localStorage.removeItem("ml_v02_accounts");
+    else localStorage.setItem("ml_v02_accounts",oldAccounts);
+    if(oldEntries===null)localStorage.removeItem("ml_v02_entries");
+    else localStorage.setItem("ml_v02_entries",oldEntries);
+    alert("保存できませんでした。空き容量を確認し、バックアップを保存してください");
+    throw err;
+  }
 }
 function escapeHTML(value){
   return String(value??"")
@@ -847,6 +861,7 @@ function escapeHTML(value){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#39;");
 }
+function htmlJS(value){return escapeHTML(JSON.stringify(value));}
 function catName(id){return categories.find(c=>c.id===id)?.name||id}
 function accountById(id){return accounts.find(a=>a.id===id)}
 function localISODate(d=new Date()){
@@ -889,14 +904,14 @@ function categoryOptions(includeBlank=false){
 }
 function accountOptionsFor(categoryId,includeBlank=false){
   const rows=accounts.filter(a=>a.category===categoryId);
-  return (includeBlank?'<option value="">指定なし</option>':'<option value="">勘定科目を選択</option>')+rows.map(a=>`<option value="${a.id}">${a.name}</option>`).join("");
+  return (includeBlank?'<option value="">指定なし</option>':'<option value="">勘定科目を選択</option>')+rows.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.name)}</option>`).join("");
 }
 function fullAccountOptions(){
   let s='<option value="">指定なし</option>';
   for(const c of categories){
     const rows=accounts.filter(a=>a.category===c.id);
     if(!rows.length)continue;
-    s+=`<optgroup label="${c.name}">`+rows.map(a=>`<option value="${a.id}">${a.name}</option>`).join("")+'</optgroup>';
+    s+=`<optgroup label="${c.name}">`+rows.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.name)}</option>`).join("")+'</optgroup>';
   }
   return s;
 }
@@ -917,7 +932,7 @@ function refreshSub(prefix){
   const aid=$(prefix+"Account").value;
   const acc=accountById(aid),subs=acc?.subs||[];
   const el=$(prefix+"Sub"),row=$(prefix+"SubRow");
-  el.innerHTML='<option value="">指定なし</option>'+subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  el.innerHTML='<option value="">指定なし</option>'+subs.map(s=>`<option value="${escapeHTML(s.id)}">${escapeHTML(s.name)}</option>`).join("");
   row.classList.toggle("hidden",subs.length===0);
 }
 function refreshFilters(){
@@ -926,9 +941,15 @@ function refreshFilters(){
   $("filterCredit").innerHTML=fullAccountOptions();
   if(d)$("filterDebit").value=d;if(c)$("filterCredit").value=c;
 }
+function validAmount(value){return Number.isSafeInteger(value)&&value>0;}
+function validLedgerDate(value){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const d=new Date(value+"T00:00:00Z");
+  return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===value;
+}
 function saveEntry(){
   const date=$("date").value,amount=Number($("amount").value),d=$("debitAccount").value,c=$("creditAccount").value;
-  if(!date||!amount||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
+  if(!validLedgerDate(date)||!validAmount(amount)||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
   entries.unshift({id:Date.now(),date,amount,debitAccount:d,debitSub:$("debitSub").value||"",creditAccount:c,creditSub:$("creditSub").value||"",memo:$("memo").value.trim()});
   entries.sort(compareEntriesNewestFirst);
   persist();
@@ -987,11 +1008,11 @@ function renderList(){
   ).slice().sort(compareEntriesNewestFirst);
   $("entries").innerHTML=rows.length?rows.map(e=>`
     <div class="entry">
-      <div class="date">${e.date}</div><div class="amount">¥${e.amount.toLocaleString()}</div>
-      <div class="line">借：${accountLabel(e.debitAccount,e.debitSub)}</div>
-      <div class="line">貸：${accountLabel(e.creditAccount,e.creditSub)}</div>
-      ${e.memo?`<div class="muted">メモ：${e.memo}</div>`:""}
-      <div class="entry-actions"><button class="secondary small" onclick="openEditEntry(${e.id})">修正</button><button class="secondary small danger" onclick="deleteEntry(${e.id})">削除</button></div>
+      <div class="date">${escapeHTML(e.date)}</div><div class="amount">¥${e.amount.toLocaleString()}</div>
+      <div class="line">借：${escapeHTML(accountLabel(e.debitAccount,e.debitSub))}</div>
+      <div class="line">貸：${escapeHTML(accountLabel(e.creditAccount,e.creditSub))}</div>
+      ${e.memo?`<div class="muted">メモ：${escapeHTML(e.memo)}</div>`:""}
+      <div class="entry-actions"><button class="secondary small" onclick="openEditEntry(${htmlJS(e.id)})">修正</button><button class="secondary small danger" onclick="deleteEntry(${htmlJS(e.id)})">削除</button></div>
     </div>`).join(""):'<div class="empty">該当する仕訳はありません</div>';
 }
 function deleteEntry(id){if(confirm("この仕訳を削除しますか？")){entries=entries.filter(e=>e.id!==id);persist();renderAll()}}
@@ -1006,7 +1027,7 @@ function openEditEntry(id){
 function saveEditedEntry(){
   const e=entries.find(x=>x.id===editingEntryId);if(!e)return;
   const amt=Number($("editAmount").value),d=$("editDebitAccount").value,c=$("editCreditAccount").value;
-  if(!$("editDate").value||!amt||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
+  if(!validLedgerDate($("editDate").value)||!validAmount(amt)||!d||!c){alert("日付・金額・借方・貸方を入力してください");return}
   Object.assign(e,{date:$("editDate").value,amount:amt,debitAccount:d,debitSub:$("editDebitSub").value||"",creditAccount:c,creditSub:$("editCreditSub").value||"",memo:$("editMemo").value.trim()});
   entries.sort(compareEntriesNewestFirst);
   persist();closeModal("editModal");renderAll();toast("仕訳を修正しました");
@@ -1027,7 +1048,7 @@ function sumCat(cat,b){return accounts.filter(a=>a.category===cat).reduce((s,a)=
 function drawNonZero(targetId,cat,b,source){
   const rows=accounts.filter(a=>a.category===cat).map(a=>({a,v:b[a.id]||0})).filter(x=>x.v!==0);
   $(targetId).innerHTML=rows.length?rows.map(x=>`
-    <div class="row taprow" onclick="showAccountReport('${x.a.id}','${source}')">
+    <div class="row taprow" onclick="showAccountReport(${htmlJS(x.a.id)},'${source}')">
       <span>
         ${escapeHTML(x.a.name)}<span class="rowchev">›</span>
         ${cat==="liability"&&x.a.memo?`<span class="account-note">${escapeHTML(x.a.memo)}</span>`:""}
@@ -1147,7 +1168,7 @@ function renderAccountReport(){
   if(none!==0)ordered.push({name:"補助勘定科目なし",v:none});
 
   $("accountSubDetail").innerHTML=ordered.length
-    ? ordered.map(x=>`<div class="row"><span>${x.name}</span><b>¥${x.v.toLocaleString()}</b></div>`).join("")
+    ? ordered.map(x=>`<div class="row"><span>${escapeHTML(x.name)}</span><b>¥${x.v.toLocaleString()}</b></div>`).join("")
     : '<div class="muted">この期間に補助勘定科目別の残高はありません</div>';
 }
 
@@ -1216,16 +1237,16 @@ function renderAccountList(){
   $("accountScreenTitle").textContent=catName(selectedAccountCategory);
   const rows=accounts.filter(a=>a.category===selectedAccountCategory);
   $("accountList").innerHTML=rows.length?rows.map(a=>`
-    <div class="swipe-wrap" data-id="${a.id}">
-      <button class="swipe-delete" aria-label="勘定科目を削除" title="削除" onclick="removeAccount('${a.id}')">➖</button>
-      <div class="account-row" data-id="${a.id}">
-        <div class="handle" data-handle="${a.id}" aria-label="長押しで並べ替え">☰</div>
-        <div class="account-main" onclick="if(closeSwipeForElement(this)) return; openSubModal('${a.id}')">
-          <b>${a.name}</b>
+    <div class="swipe-wrap" data-id="${escapeHTML(a.id)}">
+      <button class="swipe-delete" aria-label="勘定科目を削除" title="削除" onclick="removeAccount(${htmlJS(a.id)})">➖</button>
+      <div class="account-row" data-id="${escapeHTML(a.id)}">
+        <div class="handle" data-handle="${escapeHTML(a.id)}" aria-label="長押しで並べ替え">☰</div>
+        <div class="account-main" onclick="if(closeSwipeForElement(this)) return; openSubModal(${htmlJS(a.id)})">
+          <b>${escapeHTML(a.name)}</b>
           <small>補助勘定科目 ${a.subs.length}件</small>${a.category==="liability"&&a.memo?`<span class="account-note">${escapeHTML(a.memo)}</span>`:""}
         </div>
-        <button class="icon-btn" aria-label="勘定科目名を変更" title="名前を変更" onclick="event.stopPropagation();if(closeSwipeForElement(this)) return; openAccountRename('${a.id}')">✏️</button>
-        <div class="chev" onclick="if(closeSwipeForElement(this)) return; openSubModal('${a.id}')">›</div>
+        <button class="icon-btn" aria-label="勘定科目名を変更" title="名前を変更" onclick="event.stopPropagation();if(closeSwipeForElement(this)) return; openAccountRename(${htmlJS(a.id)})">✏️</button>
+        <div class="chev" onclick="if(closeSwipeForElement(this)) return; openSubModal(${htmlJS(a.id)})">›</div>
       </div>
     </div>`).join(""):'<div class="empty">勘定科目はありません</div>';
   bindSwipeAndLongPressDrag("accountList",".swipe-wrap",".handle",saveDisplayedOrder);
@@ -1247,12 +1268,12 @@ function renderSubModal(){
   const a=accountById(subEditingAccountId);if(!a)return;
   $("subModalTitle").textContent=a.name+" / 補助勘定科目";
   $("subModalList").innerHTML=a.subs.length?a.subs.map(s=>`
-    <div class="swipe-wrap sub-swipe" data-subid="${s.id}">
-      <button class="swipe-delete" aria-label="補助勘定科目を削除" title="削除" onclick="removeSub('${s.id}')">➖</button>
+    <div class="swipe-wrap sub-swipe" data-subid="${escapeHTML(s.id)}">
+      <button class="swipe-delete" aria-label="補助勘定科目を削除" title="削除" onclick="removeSub(${htmlJS(s.id)})">➖</button>
       <div class="account-row">
         <div class="handle sub-handle" aria-label="長押しで並べ替え">☰</div>
-        <div class="account-main" onclick="closeSwipeForElement(this)"><b>${s.name}</b><small>補助勘定科目</small></div>
-        <button class="icon-btn" aria-label="補助勘定科目名を変更" title="名前を変更" onclick="if(closeSwipeForElement(this)) return; openSubRename('${s.id}')">✏️</button>
+        <div class="account-main" onclick="closeSwipeForElement(this)"><b>${escapeHTML(s.name)}</b><small>補助勘定科目</small></div>
+        <button class="icon-btn" aria-label="補助勘定科目名を変更" title="名前を変更" onclick="if(closeSwipeForElement(this)) return; openSubRename(${htmlJS(s.id)})">✏️</button>
       </div>
     </div>`).join(""):'<div class="empty">補助勘定科目はありません</div>';
   bindSwipeAndLongPressDrag("subModalList",".sub-swipe",".sub-handle",saveSubOrder);
@@ -1505,7 +1526,7 @@ function normalizeDateText(v){
   let s=String(v||"").trim();
   let m=s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
   if(m)return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
-  m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
   if(m)return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
   return s;
 }
@@ -1535,16 +1556,25 @@ function getOrCreateSub(account,name){
 }
 async function importLedgerFile(file){
   if(typeof XLSX==="undefined")throw new Error("Excel読込ライブラリを読み込めません。インターネット接続を確認してください");
+  if(file.size>10*1024*1024)throw new Error("10MB以下のファイルを選択してください");
   const buf=await file.arrayBuffer();
   const wb=XLSX.read(buf,{type:"array",cellDates:false});
   const ws=wb.Sheets[wb.SheetNames[0]];
   const matrix=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
   const rows=normalizeImportedRows(matrix);
+  if(rows.length>20000)throw new Error("1回の取り込みは20,000件までです");
+  // Validate every row before changing any account or entry.
+  rows.forEach(r=>{
+    if(!validLedgerDate(normalizeDateText(r.date))||!validAmount(Number(r.amount))||!r.debit||!r.credit)
+      throw new Error("日付・金額・借方・貸方が不正です。データは変更していません");
+  });
+  const beforeAccounts=clone(accounts),beforeEntries=clone(entries);
+  try{
   let addedAccounts=0,addedSubs=0,addedEntries=0;
   const beforeA=accounts.length,beforeS=accounts.reduce((n,a)=>n+a.subs.length,0);
   for(const r of rows){
     const amount=Number(r.amount);
-    if(!r.date||!amount||!r.debit||!r.credit)continue;
+    if(!validLedgerDate(normalizeDateText(r.date))||!validAmount(amount)||!r.debit||!r.credit)throw new Error("日付・金額・借方・貸方が不正です。取り込みを中止しました");
     const da=getOrCreateAccount(r.debit,"debit"),ca=getOrCreateAccount(r.credit,"credit");
     const ds=getOrCreateSub(da,r.debitSub),cs=getOrCreateSub(ca,r.creditSub);
     entries.push({
@@ -1559,6 +1589,7 @@ async function importLedgerFile(file){
   addedSubs=accounts.reduce((n,a)=>n+a.subs.length,0)-beforeS;
   persist();renderAll();
   return {addedEntries,addedAccounts,addedSubs};
+  }catch(err){accounts=beforeAccounts;entries=beforeEntries;throw err;}
 }
 
 
@@ -1635,7 +1666,11 @@ async function exportExcel(){
 async function exportCSV(){
   const headers=["日付","金額","借方・勘定科目","借方・補助科目","貸方・勘定科目","貸方・補助科目","メモ"];
   const rows=ledgerRowsForExport();
-  const q=v=>`"${String(v??"").replaceAll('"','""')}"`;
+  const q=v=>{
+    let text=String(v??"");
+    if(/^[\s\u0000-\u001f]*[=+@-]/.test(text))text="'"+text;
+    return `"${text.replaceAll('"','""')}"`;
+  };
   const csv="\ufeff"+headers.map(q).join(",")+"\n"+
     rows.map(r=>headers.map(h=>q(r[h])).join(",")).join("\n");
   const filename=`${sanitizedExportBaseName()}.csv`;
@@ -1654,7 +1689,7 @@ function trendAccountOptions(){
   for(const c of categories){
     const rows=accounts.filter(a=>a.category===c.id);
     if(!rows.length)continue;
-    out+=`<optgroup label="${escapeHTML(c.name)}">`+rows.map(a=>`<option value="${a.id}">${escapeHTML(a.name)}</option>`).join("")+'</optgroup>';
+    out+=`<optgroup label="${escapeHTML(c.name)}">`+rows.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.name)}</option>`).join("")+'</optgroup>';
   }
   return out;
 }
@@ -2093,25 +2128,42 @@ persist=function(){
 };
 
 async function initializePrivateStorage(){
+  const app=document.querySelector(".app");
+  if(app)app.inert=true;
   try{
-    await openMLDB();
-    const saved=await idbGet("ledger");
-    // IndexedDBにデータがあり、localStorageが空のときだけ復元。
     const localHasEntries=localStorage.getItem("ml_v02_entries")!==null;
     const localHasAccounts=localStorage.getItem("ml_v02_accounts")!==null;
-    if(saved && !localHasEntries && !localHasAccounts){
-      if(Array.isArray(saved.accounts)) accounts=saved.accounts;
-      if(Array.isArray(saved.entries)) entries=saved.entries;
-      originalPersist();
-      renderAll();
-    }else{
-      await idbPut("ledger",{accounts,entries,updatedAt:new Date().toISOString()});
+    if(localHasEntries!==localHasAccounts)throw new Error("保存データが一部不足しています。バックアップを確認してください");
+    let saved;
+    try{await openMLDB();saved=await idbGet("ledger");}
+    catch(err){
+      // Keep localStorage-only support; never replace unreadable recovery data.
+      mlDB=null;
+      if(!localHasEntries)throw new Error("復元用保存領域を確認できません。再度開いてください");
     }
+    if(mlDB){
+      if(!await idbGet("before-v2.7.8")){
+        await idbPut("before-v2.7.8",{accounts:localHasAccounts?JSON.parse(localStorage.getItem("ml_v02_accounts")):(saved?.accounts||accounts),entries:localHasEntries?JSON.parse(localStorage.getItem("ml_v02_entries")):(saved?.entries||entries),updatedAt:new Date().toISOString()});
+      }
+      if(saved&&!localHasEntries){
+        if(!Array.isArray(saved.accounts)||!Array.isArray(saved.entries))throw new Error("復元用データを確認できません");
+        accounts=saved.accounts;entries=saved.entries;
+      }
+    }
+    storageReady=true;
+    if(typeof normalizeAssetTagsForStorage==="function")normalizeAssetTagsForStorage();
+    // Do not rewrite existing localStorage at startup.
+    if(!localHasEntries)originalPersist();
+    if(mlDB)await idbPut("ledger",{accounts,entries,updatedAt:new Date().toISOString()});
+    renderAll();
     const st=document.getElementById("privacyStatus");
-    if(st) st.textContent="端末内保存：有効";
-  }catch(e){
+    if(st)st.textContent=mlDB?"端末内保存：有効":"端末内保存：互換モード";
+    if(app)app.inert=false;
+  }catch(err){
+    storageReady=false;
     const st=document.getElementById("privacyStatus");
-    if(st) st.textContent="端末内保存：互換モード";
+    if(st)st.textContent="保存データの確認が必要です";
+    alert("データ保護のため起動を中止しました。既存データは削除していません。\n"+err.message);
   }
 }
 
@@ -2137,5 +2189,10 @@ if(themeSelect){
 renderAll();
 </script>
 </div>
+<script src="./v27-asset-cashflow.js?v=2.7.8"></script>
+<script src="./v27-cashflow-reclass-fix.js?v=2.7.8"></script>
+<script src="./v27-cashflow-details.js?v=2.7.8"></script>
+<script src="./v27-polish.js?v=2.7.8"></script>
+<script src="./v27-live-date-fix.js?v=2.7.8"></script>
 </body>
 </html>
