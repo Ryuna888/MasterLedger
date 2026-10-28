@@ -28,7 +28,7 @@ function normalizeAssetTags(){
     if(a.category==="asset"&&!a.assetTag){a.assetTag=guessAssetTag(a.name);changed=true;}
     if(a.category!=="asset"&&a.assetTag){delete a.assetTag;changed=true;}
   });
-  if(changed)persist();
+  // Tags are derived in memory; save with the next user edit.
 }
 
 function injectStyles(){
@@ -150,6 +150,8 @@ function augmentAnnualReport(){
     box.appendChild(wrap);
   });
 }
+
+window.normalizeAssetTagsForStorage=normalizeAssetTags;
 
 injectStyles();
 injectAssetTagFields();
